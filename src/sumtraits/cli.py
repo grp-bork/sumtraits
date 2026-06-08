@@ -1,9 +1,17 @@
 """Command-line entry point for sumtraits."""
 
 import argparse
+import logging
 
 from sumtraits.workflow import run
 from sumtraits.config import TaxonomicProfileType, TaxonomyType
+
+
+def _configure_logging(verbose: bool) -> None:
+    logging.basicConfig(
+        level=logging.DEBUG if verbose else logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(funcName)s | %(lineno)d | %(message)s",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,6 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Exclude prediction-based trait summaries. They are included by default.",
     )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable debug logging.",
+    )
     return parser
 
 
@@ -41,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     """Parse command-line arguments and run sumtraits."""
     parser = build_parser()
     args = parser.parse_args(argv)
+    _configure_logging(args.verbose)
     return run(
         args.taxonomic_profile,
         args.taxonomic_profile_type,

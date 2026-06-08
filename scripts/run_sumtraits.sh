@@ -9,4 +9,5 @@ PYTHONPATH="src${PYTHONPATH:+:$PYTHONPATH}" python -m sumtraits.cli \
     "$taxonomic_profile" \
     --taxonomic-profile-type "$taxonomic_profile_type" \
     --taxonomy-type "$taxonomy_type" \
-    --exclude-prediction-based
+    --exclude-prediction-based \
+    --verbose

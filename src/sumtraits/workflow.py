@@ -1,4 +1,8 @@
+import logging
+
 from sumtraits.translate import translate_profile
+
+logger = logging.getLogger(__name__)
 
 
 def run(
@@ -7,19 +11,14 @@ def run(
     taxonomy_type: str,
     exclude_prediction_based: bool,
 ) -> int:
-    """Run the current placeholder command."""
+    """Run the sumtraits workflow."""
 
-    print("sumtraits CLI test run")
-    print(f"taxonomic_profile: {taxonomic_profile}")
-    print(f"taxonomic_profile_type: {taxonomic_profile_type}")
-    print(f"taxonomy_type: {taxonomy_type}")
-    print(f"exclude_prediction_based: {exclude_prediction_based}")
+    logger.info("Starting sumtraits")
 
     tax_ids, translated_profile = translate_profile(
         taxonomic_profile,
         taxonomic_profile_type,
         taxonomy_type,
     )
-    print(tax_ids)
 
     return 0
