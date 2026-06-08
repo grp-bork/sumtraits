@@ -1,0 +1,5 @@
+reference_code/*
+reference_data/*
+test_data/*
+__pycache__/
+*.py[cod]
