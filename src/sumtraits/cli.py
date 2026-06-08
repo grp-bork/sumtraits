@@ -1,10 +1,9 @@
 """Command-line entry point for sumtraits."""
 
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
 
+from sumtraits.workflow import run
 from sumtraits.config import TaxonomicProfileType, TaxonomyType
 
 
@@ -39,23 +38,16 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run(args: argparse.Namespace) -> int:
-    """Run the current placeholder command."""
-
-    print("sumtraits CLI test run")
-    print(f"taxonomic_profile: {args.taxonomic_profile}")
-    print(f"taxonomic_profile_type: {args.taxonomic_profile_type}")
-    print(f"taxonomy_type: {args.taxonomy_type}")
-    print(f"exclude_prediction_based: {args.exclude_prediction_based}")
-
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     """Parse command-line arguments and run sumtraits."""
     parser = build_parser()
     args = parser.parse_args(argv)
-    return run(args)
+    return run(
+        args.taxonomic_profile,
+        args.taxonomic_profile_type,
+        args.taxonomy_type,
+        args.exclude_prediction_based,
+    )
 
 
 if __name__ == "__main__":
