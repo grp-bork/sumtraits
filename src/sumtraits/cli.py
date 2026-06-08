@@ -1,7 +1,6 @@
 """Command-line entry point for sumtraits."""
 
 import argparse
-from pathlib import Path
 
 from sumtraits.workflow import run
 from sumtraits.config import TaxonomicProfileType, TaxonomyType
@@ -15,7 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "taxonomic_profile",
-        type=Path,
+        type=str,
         help="Path to the taxonomic profile file.",
     )
     parser.add_argument(
