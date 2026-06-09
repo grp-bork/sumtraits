@@ -38,6 +38,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Target taxonomy to use.",
     )
     parser.add_argument(
+        "--output-dir",
+        required=True,
+        help="Directory where the output tarball will be written.",
+    )
+    parser.add_argument(
         "--exclude-prediction-based",
         action="store_true",
         help="Exclude prediction-based trait summaries. They are included by default.",
@@ -60,6 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         args.taxonomic_profile_type,
         args.taxonomy_type,
         args.exclude_prediction_based,
+        args.output_dir,
     )
 
 
