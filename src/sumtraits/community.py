@@ -378,7 +378,8 @@ def _prepare_taxonomy_metadata(taxonomy_df: pd.DataFrame) -> pd.DataFrame:
 def _build_sample_matrix(
     consolidated: pd.DataFrame, profile: pd.DataFrame | pd.Series
 ) -> pd.DataFrame:
-    # TODO: rewrite this
+    # TODO: sample_columns should just be profile.columns
+    # TODO: profile should be used instead of abundance
     abundance, sample_columns = _normalize_profile(profile)
     base_columns = [
         "trait",
@@ -388,9 +389,9 @@ def _build_sample_matrix(
 
     if consolidated.empty:
         return pd.DataFrame(columns=base_columns + sample_columns)
-
     zero_values = _zero_series(sample_columns)
     matrix_rows: list[dict] = []
+    # TODO: profile.index should be used instead of abundance["taxon_id"]
     unclassified_sum = abundance.loc[abundance["taxon_id"] == -1, sample_columns].sum()
     if unclassified_sum.empty:
         unclassified_sum = zero_values.copy()
@@ -403,11 +404,15 @@ def _build_sample_matrix(
         value_type = (
             value_type_candidates[0] if len(value_type_candidates) else "factor"
         )
-
+        # TODO: trait_rows.taxon_id should be merged with profile.index
         merged = trait_rows.merge(abundance, on="taxon_id", how="left")
+        # TODO: This is impossible. tax ids are used to query the database
+        # There can be tax ids with no traits but every trait
+        # must have a tax id
         for column in sample_columns:
             merged[column] = merged[column].fillna(0.0)
 
+        # TODO: The only unannotated rows are profile.index = -1
         annotated_tax_ids = set(
             merged.loc[merged["status"].isin(ANNOTATED_STATUSES), "taxon_id"]
         )
