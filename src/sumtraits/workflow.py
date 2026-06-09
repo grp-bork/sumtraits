@@ -1,7 +1,10 @@
 import logging
+from pathlib import Path
 
 from sumtraits.translate import translate_profile
-from sumtraits.processing import get_trait_summary
+from sumtraits.processing import get_trait_summary, normalize_profile
+from sumtraits.community import create_community_summary
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +25,14 @@ def run(
         taxonomy_type,
     )
 
+    normalized_profile = normalize_profile(translated_profile)
+
     if not tax_ids:
-        logger.error(f"No {taxonomy_type} tax ids found after translating the taxonomic profile. Exiting...")
+        logger.error(
+            f"No {taxonomy_type} tax ids found after translating the taxonomic profile. Exiting..."
+        )
         return 1
-    
+
     logger.info("Tax IDs identified: %d", len(tax_ids))
 
     trait_summary = get_trait_summary(tax_ids, taxonomy_type, exclude_prediction_based)
@@ -34,5 +41,7 @@ def run(
         return 1
 
     logger.info("Trait summary rows: %d", trait_summary.shape[0])
+
+    community_summary = create_community_summary(trait_summary, normalized_profile)
 
     return 0

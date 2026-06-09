@@ -25,3 +25,8 @@ def get_trait_summary(
     data_path = _get_summary_path(taxonomy_type, "", exclude_prediction_based)
     trait_summary = pd.read_csv(data_path, sep="\t")
     return trait_summary[trait_summary["taxon_id"].isin(tax_ids)]
+
+def normalize_profile(profile: pd.DataFrame) -> pd.DataFrame:
+    normalized = profile.rename_axis("taxon_id").reset_index()
+    normalized["taxon_id"] = normalized["taxon_id"].astype("int64", copy=False)
+    return normalized

@@ -5,11 +5,11 @@ import re
 import pandas as pd
 import numpy as np
 
-from typing import Literal
+import logging
 
-ROBUST_THRESHOLD = 0.85
-BOOLEAN_TRUE_VALUES = {"true", "yes"}
-BOOLEAN_FALSE_VALUES = {"false", "no"}
+logger = logging.getLogger(__name__)
+
+
 ANNOTATED_STATUSES = {"consensus", "no_robust_majority"}
 
 
@@ -44,7 +44,6 @@ def _make_matrix_row(
         row[column] = None if pd.isna(val) else float(val)
 
     return row
-
 
 
 def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
@@ -108,11 +107,12 @@ def _zero_series(columns: list[str]) -> pd.Series:
     return pd.Series(0.0, index=columns, dtype=float)
 
 
+# TODO refactor this god awful mess
 def _build_sample_matrix(
-    consolidated: pd.DataFrame, profile: pd.DataFrame | pd.Series
+    consolidated: pd.DataFrame, profile: pd.DataFrame
 ) -> pd.DataFrame:
     abundance = profile
-    sample_columns = profile.columns[1:]
+    sample_columns = list(profile.columns[1:])
     base_columns = [
         "trait",
         "summary_type",
@@ -309,8 +309,6 @@ def _build_sample_matrix(
         )
 
     matrix_df = pd.DataFrame(matrix_rows)
-    if matrix_df.empty:
-        return pd.DataFrame(columns=base_columns + sample_columns)
 
     matrix_df = matrix_df.reindex(columns=base_columns + sample_columns)
     return matrix_df
@@ -319,11 +317,8 @@ def _build_sample_matrix(
 def create_community_summary(
     trait_summary: pd.DataFrame,
     profile: pd.DataFrame,
-) -> io.BytesIO:
+) -> pd.DataFrame:
     consolidated = _build_consolidated_table(trait_summary)
-    print(consolidated)
-    exit(1)
-
     sample_matrix = _build_sample_matrix(consolidated, profile)
 
     return sample_matrix
