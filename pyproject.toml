@@ -8,10 +8,22 @@ version = "0.1.0"
 description = "Command-line tools for summarizing traits from taxonomic profiles."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "numpy",
+    "pandas",
+    "taxonomic-profile-translator @ git+https://git.embl.org/robbani/taxonomic-profile-translator.git",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
 
 [project.scripts]
 sumtraits = "sumtraits.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

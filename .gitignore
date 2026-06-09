@@ -5,3 +5,4 @@ __pycache__/
 *.py[cod]
 tmp/*
 .tmp
+sumtraits.egg-info

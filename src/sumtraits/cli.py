@@ -3,7 +3,6 @@
 import argparse
 import logging
 
-from sumtraits.workflow import run
 from sumtraits.config import TaxonomicProfileType, TaxonomyType
 
 
@@ -11,6 +10,25 @@ def _configure_logging(verbose: bool) -> None:
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(funcName)s | %(lineno)d | %(message)s",
+        force=True,
+    )
+
+
+def _run_workflow(
+    taxonomic_profile: str,
+    taxonomic_profile_type: str,
+    taxonomy_type: str,
+    exclude_prediction_based: bool,
+    output_dir: str,
+) -> int:
+    from sumtraits.workflow import run
+
+    return run(
+        taxonomic_profile,
+        taxonomic_profile_type,
+        taxonomy_type,
+        exclude_prediction_based,
+        output_dir,
     )
 
 
@@ -60,13 +78,21 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     _configure_logging(args.verbose)
-    return run(
-        args.taxonomic_profile,
-        args.taxonomic_profile_type,
-        args.taxonomy_type,
-        args.exclude_prediction_based,
-        args.output_dir,
-    )
+    try:
+        return _run_workflow(
+            args.taxonomic_profile,
+            args.taxonomic_profile_type,
+            args.taxonomy_type,
+            args.exclude_prediction_based,
+            args.output_dir,
+        )
+    except Exception as error:
+        logger = logging.getLogger(__name__)
+        if args.verbose:
+            logger.exception("sumtraits failed: %s", error)
+        else:
+            logger.error("sumtraits failed: %s", error)
+        return 1
 
 
 if __name__ == "__main__":

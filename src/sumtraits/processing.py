@@ -30,7 +30,7 @@ def get_trait_summary(
 
 def normalize_profile(profile: pd.DataFrame) -> pd.DataFrame:
     normalized = profile.rename_axis("taxon_id").reset_index()
-    normalized["taxon_id"] = normalized["taxon_id"].astype("int64", copy=False)
+    normalized["taxon_id"] = normalized["taxon_id"].astype("int64")
     return normalized
 
 def _add_bytes_to_tar(tar: tarfile.TarFile, name: str, data: bytes) -> None:
