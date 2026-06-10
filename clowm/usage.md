@@ -1,15 +1,26 @@
-# Output
+# Usage
 
-The directories listed below will be created in the results directory after the pipeline has finished. All paths are relative to the top-level results directory.
+`sumtraits` summarizes microbial trait annotations from a taxonomic profile.
 
-## HMMER
+Provide an input taxonomic profile, select the profile format, select the target taxonomy, and choose an output directory. The workflow translates the profile to the selected taxonomy, looks up matching metaTraits summaries, and writes a compressed result archive.
 
-- `hmm_output.tbl`: Tabular summary of all gene-to-HMM hits, one line per hit, produced by `hmmscan --tblout`.
+Supported profile formats:
 
-[HMMER](http://hmmer.org/) searches predicted gene sequences against the provided HMM profile. Only hits passing the profile's gathering threshold (`--cut_ga`) are reported.
+- `motus`
+- `metaphlan`
+- `kraken2`
+- `krakenuniq`
+- `bracken`
+- `kaiju`
+- `generic_ncbi`
+- `generic_gtdb`
 
-## nfixplanet
+Supported target taxonomies:
 
-- `annotations/`: Directory containing annotation output files produced by `nfixplanet annotate`.
+- `ncbi`
+- `gtdb`
 
-[nfixplanet](https://github.com/grp-bork/nfixplanet) interprets the HMMER hits and assigns functional annotations to nitrogen fixation genes.
+Optional settings:
+
+- `exclude_prediction_based`: use only culture-based records rather than culture and prediction based.
+- `verbose`: enable debug logging and show tracebacks for runtime errors.

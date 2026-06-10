@@ -1,20 +1,20 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema",
     "$id": "https://git.embl.de",
-    "title": "nfixplanet nextflow schema",
-    "description": "nfixplanet workflow for nitrogen fixation gene detection",
+    "title": "sumtraits nextflow schema",
+    "description": "sumtraits workflow for summarizing microbial trait annotations from taxonomic profiles",
     "definitions": {
         "input_output_options": {
             "title": "Input / Output options",
             "type": "object",
-            "description": "General Input",
+            "description": "Input taxonomic profile and output location",
             "default": "",
             "properties": {
-                "input": {
+                "taxonomic_profile": {
                     "type": "string",
                     "format": "file-path",
                     "fa_icon": "fas fa-sign-in-alt",
-                    "description": "Path or S3 URI to the input genome FASTA file (gzipped)"
+                    "description": "Path or S3 URI to the input taxonomic profile file"
                 },
                 "output_dir": {
                     "type": "string",
@@ -24,10 +24,44 @@
                 }
             },
             "required": [
-                "input",
+                "taxonomic_profile",
                 "output_dir"
             ],
             "fa_icon": "fas fa-terminal"
+        },
+        "profile_options": {
+            "title": "Taxonomic profile options",
+            "type": "object",
+            "description": "Input profile format and target taxonomy",
+            "default": "",
+            "properties": {
+                "taxonomic_profile_type": {
+                    "type": "string",
+                    "description": "Type of the input taxonomic profile file",
+                    "enum": [
+                        "motus",
+                        "metaphlan",
+                        "kraken2",
+                        "krakenuniq",
+                        "bracken",
+                        "kaiju",
+                        "generic_ncbi",
+                        "generic_gtdb"
+                    ]
+                },
+                "taxonomy_type": {
+                    "type": "string",
+                    "description": "Target taxonomy used for trait lookup",
+                    "enum": [
+                        "ncbi",
+                        "gtdb"
+                    ]
+                }
+            },
+            "required": [
+                "taxonomic_profile_type",
+                "taxonomy_type"
+            ]
         },
         "parameters": {
             "title": "Parameters",
@@ -35,13 +69,23 @@
             "description": "Optional Parameters",
             "default": "",
             "properties": {
-                "hmm_profile": {
+                "sumtraits_reference_data_dir": {
                     "type": "string",
-                    "format": "file-path",
-                    "description": "Path to the HMM profile file used for nitrogen fixation gene detection",
-                    "help_text": "This should be the path to the nfixplanet HMM profiles (.hmm) file",
+                    "format": "directory-path",
+                    "description": "Directory containing the sumtraits reference data files",
+                    "help_text": "The directory must contain ncbi_all.tsv, ncbi_no_predictions.tsv, gtdb_all.tsv, and gtdb_no_predictions.tsv.",
                     "hidden": true,
-                    "default": "/vol/data/databases/clowm/CLDB-019d446b8a2e7fb8b797a2b3b819c485/latest/src/nfixplanet/reference_data/hmm_profiles/nfixplanet_models.hmm"
+                    "default": "/vol/data/databases/clowm/CLDB-019eb1eed5d875118e54ee5d90f8c3e1/latest"
+                },
+                "exclude_prediction_based": {
+                    "type": "boolean",
+                    "description": "Use the reference summaries without prediction-based trait annotations",
+                    "default": false
+                },
+                "verbose": {
+                    "type": "boolean",
+                    "description": "Enable debug logging and runtime tracebacks",
+                    "default": false
                 }
             }
         }
@@ -49,6 +93,9 @@
     "allOf": [
         {
             "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/profile_options"
         },
         {
             "$ref": "#/definitions/parameters"

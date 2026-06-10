@@ -1,15 +1,15 @@
 # Output
 
-The directories listed below will be created in the results directory after the pipeline has finished. All paths are relative to the top-level results directory.
+The workflow writes one compressed archive to the results directory. For example, an input file named `profile.tsv` and target taxonomy `ncbi`, produces the output archive:
 
-## HMMER
+```text
+profile_summary_ncbi.tar.gz
+```
 
-- `hmm_output.tbl`: Tabular summary of all gene-to-HMM hits, one line per hit, produced by `hmmscan --tblout`.
+The archive contains:
 
-[HMMER](http://hmmer.org/) searches predicted gene sequences against the provided HMM profile. Only hits passing the profile's gathering threshold (`--cut_ga`) are reported.
+- `profile.ncbi.tsv`: taxonomic profile translated to the target taxonomy.
+- `taxon_trait_annotations.tsv`: taxon-level trait summary rows matching the translated taxon IDs.
+- `community_trait_annotations.tsv`: community-level trait summaries across the samples in the profile.
+- `profile.tsv`: the original input profile.
 
-## nfixplanet
-
-- `annotations/`: Directory containing annotation output files produced by `nfixplanet annotate`.
-
-[nfixplanet](https://github.com/grp-bork/nfixplanet) interprets the HMMER hits and assigns functional annotations to nitrogen fixation genes.
