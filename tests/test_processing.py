@@ -42,8 +42,8 @@ def test_write_output_archive_contains_expected_files(tmp_path):
     )
 
     archive_path = processing.write_output_archive(
-        str(output_dir),
-        str(input_file),
+        output_dir,
+        input_file,
         "ncbi",
         normalized_profile,
         trait_summary,
@@ -74,8 +74,8 @@ def test_write_output_archive_rejects_output_path_that_is_file(tmp_path):
 
     with pytest.raises(NotADirectoryError):
         processing.write_output_archive(
-            str(output_path),
-            str(input_file),
+            output_path,
+            input_file,
             "ncbi",
             pd.DataFrame(),
             pd.DataFrame(),

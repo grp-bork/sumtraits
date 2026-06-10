@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+from pathlib import Path
 
 from sumtraits.config import TaxonomicProfileType, TaxonomyType
 
@@ -15,12 +16,12 @@ def _configure_logging(verbose: bool) -> None:
 
 
 def _run_workflow(
-    taxonomic_profile: str,
+    taxonomic_profile: Path,
     taxonomic_profile_type: str,
     taxonomy_type: str,
-    reference_data_dir: str,
+    reference_data_dir: Path,
     exclude_prediction_based: bool,
-    output_dir: str,
+    output_dir: Path,
 ) -> int:
     from sumtraits.workflow import run
 
@@ -44,7 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--input-taxonomic-profile",
         dest="taxonomic_profile",
         required=True,
-        type=str,
+        type=Path,
         help="Path to the input taxonomic profile file.",
     )
     parser.add_argument(
@@ -63,11 +64,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--summtraits-reference-data-dir",
         dest="reference_data_dir",
         required=True,
+        type=Path,
         help="Directory containing sumtraits reference data files.",
     )
     parser.add_argument(
         "--output-dir",
         required=True,
+        type=Path,
         help="Directory where the output tarball will be written.",
     )
     parser.add_argument(

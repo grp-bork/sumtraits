@@ -1,12 +1,15 @@
+from pathlib import Path
+
 import pandas as pd
 
 from taxonomic_profile_translator import factory
 from taxonomic_profile_translator.enums import (
+    PROFILE_TO_TAXONOMY,
     ProfileType,
     Taxonomy,
-    PROFILE_TO_TAXONOMY,
 )
 from taxonomic_profile_translator.errors import TranslationError
+
 
 def _convert_profile_type(
     profile_type: str
@@ -48,10 +51,10 @@ def _get_tax_ids(profile: pd.DataFrame) -> set[int]:
 
 
 def translate_profile(
-    file_path: str,
+    file_path: Path,
     taxonomic_profile_type: str,
     taxonomy_type: str,
-) -> tuple[list[int], pd.DataFrame]:
+) -> tuple[set[int], pd.DataFrame]:
     """
     Use the taxonomic profile translator to convert to tax IDs.
     Also return the species level profile
@@ -60,7 +63,7 @@ def translate_profile(
     translate_to = Taxonomy(taxonomy_type.upper())
 
     profile = factory.ProfileFactory.create(
-        file_path=file_path,
+        file_path=str(file_path),
         profile_type=profile_type,
         taxonomy=profile_taxonomy,
         translate_to=translate_to,

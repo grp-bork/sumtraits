@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -73,24 +75,24 @@ def test_run_writes_archive_on_success(monkeypatch):
     monkeypatch.setattr(workflow, "write_output_archive", fake_write_output_archive)
 
     exit_code = workflow.run(
-        "profile.tsv",
+        Path("profile.tsv"),
         "bracken",
         "ncbi",
-        "reference_data",
+        Path("reference_data"),
         False,
-        "out",
+        Path("out"),
     )
 
     assert exit_code == 0
     assert calls == [
-        ("translate", "profile.tsv", "bracken", "ncbi"),
+        ("translate", Path("profile.tsv"), "bracken", "ncbi"),
         ("normalize", True),
-        ("trait_summary", {42}, "ncbi", "reference_data", False),
+        ("trait_summary", {42}, "ncbi", Path("reference_data"), False),
         ("community_summary", True, True),
         (
             "archive",
-            "out",
-            "profile.tsv",
+            Path("out"),
+            Path("profile.tsv"),
             "ncbi",
             True,
             True,
@@ -115,7 +117,14 @@ def test_run_returns_one_when_translation_finds_no_tax_ids(monkeypatch):
     )
 
     assert (
-        workflow.run("profile.tsv", "bracken", "ncbi", "reference_data", False, "out")
+        workflow.run(
+            Path("profile.tsv"),
+            "bracken",
+            "ncbi",
+            Path("reference_data"),
+            False,
+            Path("out"),
+        )
         == 1
     )
 
@@ -143,6 +152,13 @@ def test_run_returns_one_when_trait_summary_is_empty(monkeypatch):
     )
 
     assert (
-        workflow.run("profile.tsv", "bracken", "ncbi", "reference_data", False, "out")
+        workflow.run(
+            Path("profile.tsv"),
+            "bracken",
+            "ncbi",
+            Path("reference_data"),
+            False,
+            Path("out"),
+        )
         == 1
     )

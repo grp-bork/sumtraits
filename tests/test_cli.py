@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from sumtraits import cli
@@ -79,7 +81,14 @@ def test_main_passes_parsed_arguments_to_workflow(monkeypatch):
 
     assert exit_code == 0
     assert calls == [
-        ("profile.tsv", "bracken", "ncbi", "reference_data", True, "out")
+        (
+            Path("profile.tsv"),
+            "bracken",
+            "ncbi",
+            Path("reference_data"),
+            True,
+            Path("out"),
+        )
     ]
 
 

@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from sumtraits.translate import translate_profile
 from sumtraits.processing import (
@@ -12,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 def run(
-    taxonomic_profile: str,
+    taxonomic_profile: Path,
     taxonomic_profile_type: str,
     taxonomy_type: str,
-    reference_data_dir: str,
+    reference_data_dir: Path,
     exclude_prediction_based: bool,
-    output_dir: str,
+    output_dir: Path,
 ) -> int:
     """Run the sumtraits workflow."""
 
