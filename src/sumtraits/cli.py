@@ -61,7 +61,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Target taxonomy to use.",
     )
     parser.add_argument(
-        "--summtraits-reference-data-dir",
+        "--sumtraits-reference-data-dir",
         dest="reference_data_dir",
         required=True,
         type=Path,

@@ -27,7 +27,7 @@ The editable install provides the `sumtraits` command.
 
 ## Reference Data
 
-`sumtraits` expects combined metaTraits summary files in the directory passed to `--summtraits-reference-data-dir`:
+`sumtraits` expects combined metaTraits summary files in the directory passed to `--sumtraits-reference-data-dir`:
 
 - `REFERENCE_DATA_DIR/ncbi_all.tsv`
 - `REFERENCE_DATA_DIR/ncbi_no_predictions.tsv`
@@ -73,7 +73,7 @@ sumtraits \
   --input-taxonomic-profile TAXONOMIC_PROFILE \
   --taxonomic-profile-type PROFILE_TYPE \
   --taxonomy-type TAXONOMY_TYPE \
-  --summtraits-reference-data-dir REFERENCE_DATA_DIR \
+  --sumtraits-reference-data-dir REFERENCE_DATA_DIR \
   --output-dir OUTPUT_DIR
 ```
 
@@ -84,7 +84,7 @@ sumtraits \
   --input-taxonomic-profile test_data/bracken_NCBI.tsv \
   --taxonomic-profile-type bracken \
   --taxonomy-type ncbi \
-  --summtraits-reference-data-dir reference_data \
+  --sumtraits-reference-data-dir reference_data \
   --output-dir tmp
 ```
 

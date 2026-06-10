@@ -14,7 +14,7 @@ python # -m memray run --native -o memray-sumtraits.bin \
   --input-taxonomic-profile "$taxonomic_profile" \
   --taxonomic-profile-type "$taxonomic_profile_type" \
   --taxonomy-type "$taxonomy_type" \
-  --summtraits-reference-data-dir "$reference_data_dir" \
+  --sumtraits-reference-data-dir "$reference_data_dir" \
   --output-dir "$output_dir" \
   --verbose
 
