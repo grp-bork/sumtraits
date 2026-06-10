@@ -6,3 +6,12 @@ __pycache__/
 tmp/*
 .tmp
 sumtraits.egg-info
+memray*
+*.log
+build
+.vscode
+.nextflow*
+dag*
+trace*
+work/*
+tmp2
