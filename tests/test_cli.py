@@ -15,11 +15,14 @@ def test_invalid_taxonomic_profile_type_exits_with_argparse_error(capsys):
     with pytest.raises(SystemExit) as exc_info:
         cli.main(
             [
+                "--input-taxonomic-profile",
                 "profile.tsv",
                 "--taxonomic-profile-type",
                 "invalid",
                 "--taxonomy-type",
                 "ncbi",
+                "--summtraits-reference-data-dir",
+                "reference_data",
                 "--output-dir",
                 "out",
             ]
@@ -27,6 +30,26 @@ def test_invalid_taxonomic_profile_type_exits_with_argparse_error(capsys):
 
     assert exc_info.value.code == 2
     assert "invalid choice" in capsys.readouterr().err
+
+
+def test_positional_taxonomic_profile_is_not_supported(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main(
+            [
+                "profile.tsv",
+                "--taxonomic-profile-type",
+                "bracken",
+                "--taxonomy-type",
+                "ncbi",
+                "--summtraits-reference-data-dir",
+                "reference_data",
+                "--output-dir",
+                "out",
+            ]
+        )
+
+    assert exc_info.value.code == 2
+    assert "--input-taxonomic-profile" in capsys.readouterr().err
 
 
 def test_main_passes_parsed_arguments_to_workflow(monkeypatch):
@@ -40,11 +63,14 @@ def test_main_passes_parsed_arguments_to_workflow(monkeypatch):
 
     exit_code = cli.main(
         [
+            "--input-taxonomic-profile",
             "profile.tsv",
             "--taxonomic-profile-type",
             "bracken",
             "--taxonomy-type",
             "ncbi",
+            "--summtraits-reference-data-dir",
+            "reference_data",
             "--output-dir",
             "out",
             "--exclude-prediction-based",
@@ -52,7 +78,9 @@ def test_main_passes_parsed_arguments_to_workflow(monkeypatch):
     )
 
     assert exit_code == 0
-    assert calls == [("profile.tsv", "bracken", "ncbi", True, "out")]
+    assert calls == [
+        ("profile.tsv", "bracken", "ncbi", "reference_data", True, "out")
+    ]
 
 
 def test_main_reports_runtime_errors_without_traceback(monkeypatch, capsys):
@@ -63,11 +91,14 @@ def test_main_reports_runtime_errors_without_traceback(monkeypatch, capsys):
 
     exit_code = cli.main(
         [
+            "--input-taxonomic-profile",
             "profile.tsv",
             "--taxonomic-profile-type",
             "bracken",
             "--taxonomy-type",
             "ncbi",
+            "--summtraits-reference-data-dir",
+            "reference_data",
             "--output-dir",
             "out",
         ]
@@ -87,11 +118,14 @@ def test_main_reports_runtime_errors_with_traceback_when_verbose(monkeypatch, ca
 
     exit_code = cli.main(
         [
+            "--input-taxonomic-profile",
             "profile.tsv",
             "--taxonomic-profile-type",
             "bracken",
             "--taxonomy-type",
             "ncbi",
+            "--summtraits-reference-data-dir",
+            "reference_data",
             "--output-dir",
             "out",
             "--verbose",

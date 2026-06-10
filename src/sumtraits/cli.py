@@ -18,6 +18,7 @@ def _run_workflow(
     taxonomic_profile: str,
     taxonomic_profile_type: str,
     taxonomy_type: str,
+    reference_data_dir: str,
     exclude_prediction_based: bool,
     output_dir: str,
 ) -> int:
@@ -27,6 +28,7 @@ def _run_workflow(
         taxonomic_profile,
         taxonomic_profile_type,
         taxonomy_type,
+        reference_data_dir,
         exclude_prediction_based,
         output_dir,
     )
@@ -39,21 +41,29 @@ def build_parser() -> argparse.ArgumentParser:
         description="Summarize traits from a taxonomic profile.",
     )
     parser.add_argument(
-        "taxonomic_profile",
+        "--input-taxonomic-profile",
+        dest="taxonomic_profile",
+        required=True,
         type=str,
-        help="Path to the taxonomic profile file.",
+        help="Path to the input taxonomic profile file.",
     )
     parser.add_argument(
         "--taxonomic-profile-type",
         required=True,
         choices=[profile_type.value for profile_type in TaxonomicProfileType],
-        help="Type of taxonomic profile parser to use.",
+        help="Type of the input taxonomic profile file.",
     )
     parser.add_argument(
         "--taxonomy-type",
         required=True,
         choices=[taxonomy_type.value for taxonomy_type in TaxonomyType],
         help="Target taxonomy to use.",
+    )
+    parser.add_argument(
+        "--summtraits-reference-data-dir",
+        dest="reference_data_dir",
+        required=True,
+        help="Directory containing sumtraits reference data files.",
     )
     parser.add_argument(
         "--output-dir",
@@ -83,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
             args.taxonomic_profile,
             args.taxonomic_profile_type,
             args.taxonomy_type,
+            args.reference_data_dir,
             args.exclude_prediction_based,
             args.output_dir,
         )

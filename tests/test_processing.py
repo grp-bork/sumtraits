@@ -6,7 +6,7 @@ import pytest
 from sumtraits import processing
 
 
-def test_get_trait_summary_reads_synthetic_reference_data(tmp_path, monkeypatch):
+def test_get_trait_summary_reads_synthetic_reference_data(tmp_path):
     reference_file = tmp_path / "ncbi_no_predictions.tsv"
     pd.DataFrame(
         {
@@ -14,9 +14,8 @@ def test_get_trait_summary_reads_synthetic_reference_data(tmp_path, monkeypatch)
             "trait_name": ["a", "b", "c"],
         }
     ).to_csv(reference_file, sep="\t", index=False)
-    monkeypatch.setattr(processing, "REFERENCE_DATA_DIR", tmp_path)
 
-    result = processing.get_trait_summary({1, 3}, "NCBI", True)
+    result = processing.get_trait_summary({1, 3}, "NCBI", tmp_path, True)
 
     assert result["taxon_id"].tolist() == [1, 3]
     assert result["trait_name"].tolist() == ["a", "c"]

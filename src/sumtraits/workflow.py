@@ -15,6 +15,7 @@ def run(
     taxonomic_profile: str,
     taxonomic_profile_type: str,
     taxonomy_type: str,
+    reference_data_dir: str,
     exclude_prediction_based: bool,
     output_dir: str,
 ) -> int:
@@ -38,7 +39,12 @@ def run(
 
     logger.info("Tax IDs identified: %d", len(tax_ids))
 
-    trait_summary = get_trait_summary(tax_ids, taxonomy_type, exclude_prediction_based)
+    trait_summary = get_trait_summary(
+        tax_ids,
+        taxonomy_type,
+        reference_data_dir,
+        exclude_prediction_based,
+    )
     if trait_summary.empty:
         logger.error("No trait summary rows found for tax IDs. Exiting...")
         return 1

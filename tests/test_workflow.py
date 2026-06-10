@@ -19,8 +19,18 @@ def test_run_writes_archive_on_success(monkeypatch):
         calls.append(("normalize", profile is translated_profile))
         return normalized_profile
 
-    def fake_get_trait_summary(tax_ids, taxonomy_type, exclude_prediction_based):
-        calls.append(("trait_summary", tax_ids, taxonomy_type, exclude_prediction_based))
+    def fake_get_trait_summary(
+        tax_ids, taxonomy_type, reference_data_dir, exclude_prediction_based
+    ):
+        calls.append(
+            (
+                "trait_summary",
+                tax_ids,
+                taxonomy_type,
+                reference_data_dir,
+                exclude_prediction_based,
+            )
+        )
         return trait_summary
 
     def fake_create_community_summary(summary, profile):
@@ -62,13 +72,20 @@ def test_run_writes_archive_on_success(monkeypatch):
     )
     monkeypatch.setattr(workflow, "write_output_archive", fake_write_output_archive)
 
-    exit_code = workflow.run("profile.tsv", "bracken", "ncbi", False, "out")
+    exit_code = workflow.run(
+        "profile.tsv",
+        "bracken",
+        "ncbi",
+        "reference_data",
+        False,
+        "out",
+    )
 
     assert exit_code == 0
     assert calls == [
         ("translate", "profile.tsv", "bracken", "ncbi"),
         ("normalize", True),
-        ("trait_summary", {42}, "ncbi", False),
+        ("trait_summary", {42}, "ncbi", "reference_data", False),
         ("community_summary", True, True),
         (
             "archive",
@@ -97,7 +114,10 @@ def test_run_returns_one_when_translation_finds_no_tax_ids(monkeypatch):
         lambda *args: pytest.fail("trait summary should not be queried"),
     )
 
-    assert workflow.run("profile.tsv", "bracken", "ncbi", False, "out") == 1
+    assert (
+        workflow.run("profile.tsv", "bracken", "ncbi", "reference_data", False, "out")
+        == 1
+    )
 
 
 def test_run_returns_one_when_trait_summary_is_empty(monkeypatch):
@@ -122,4 +142,7 @@ def test_run_returns_one_when_trait_summary_is_empty(monkeypatch):
         lambda *args: pytest.fail("archive should not be written"),
     )
 
-    assert workflow.run("profile.tsv", "bracken", "ncbi", False, "out") == 1
+    assert (
+        workflow.run("profile.tsv", "bracken", "ncbi", "reference_data", False, "out")
+        == 1
+    )

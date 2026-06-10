@@ -7,7 +7,7 @@ It translates an input profile to NCBI or GTDB taxon IDs, looks up matching meta
 ## Requirements
 
 - Python 3.11 or newer
-- Local metaTraits reference data files under `reference_data/`
+- Local metaTraits reference data files
 - `taxonkit` and the NCBI taxonomy database, if they are not already installed on the system
 
 The Python package depends on `numpy`, `pandas`, and `taxonomic-profile-translator`.
@@ -27,12 +27,12 @@ The editable install provides the `sumtraits` command.
 
 ## Reference Data
 
-`sumtraits` expects combined metaTraits summary files in `reference_data/`:
+`sumtraits` expects combined metaTraits summary files in the directory passed to `--summtraits-reference-data-dir`:
 
-- `reference_data/ncbi_all.tsv`
-- `reference_data/ncbi_no_predictions.tsv`
-- `reference_data/gtdb_all.tsv`
-- `reference_data/gtdb_no_predictions.tsv`
+- `REFERENCE_DATA_DIR/ncbi_all.tsv`
+- `REFERENCE_DATA_DIR/ncbi_no_predictions.tsv`
+- `REFERENCE_DATA_DIR/gtdb_all.tsv`
+- `REFERENCE_DATA_DIR/gtdb_no_predictions.tsv`
 
 Download the source reference files from the metaTraits downloads page:
 
@@ -69,18 +69,22 @@ These scripts use installers provided by `taxonomic-profile-translator`.
 ## Usage
 
 ```bash
-sumtraits TAXONOMIC_PROFILE \
+sumtraits \
+  --input-taxonomic-profile TAXONOMIC_PROFILE \
   --taxonomic-profile-type PROFILE_TYPE \
   --taxonomy-type TAXONOMY_TYPE \
+  --summtraits-reference-data-dir REFERENCE_DATA_DIR \
   --output-dir OUTPUT_DIR
 ```
 
 Example:
 
 ```bash
-sumtraits test_data/bracken_NCBI.tsv \
+sumtraits \
+  --input-taxonomic-profile test_data/bracken_NCBI.tsv \
   --taxonomic-profile-type bracken \
   --taxonomy-type ncbi \
+  --summtraits-reference-data-dir reference_data \
   --output-dir tmp
 ```
 

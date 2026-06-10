@@ -1,7 +1,6 @@
 """Shared configuration for the sumtraits command-line interface."""
 
 from enum import StrEnum
-from pathlib import Path
 
 
 class TaxonomyType(StrEnum):
@@ -22,6 +21,3 @@ class TaxonomicProfileType(StrEnum):
     KAIJU = "kaiju"
     GENERIC_NCBI = "generic_ncbi"
     GENERIC_GTDB = "generic_gtdb"
-
-REFERENCE_DATA_DIR = Path(__file__).resolve().parents[2] / "reference_data"
-RANKS = ("family", "genus", "species")
