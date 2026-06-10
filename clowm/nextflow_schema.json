@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://git.embl.de",
+    "title": "nfixplanet nextflow schema",
+    "description": "nfixplanet workflow for nitrogen fixation gene detection",
+    "definitions": {
+        "input_output_options": {
+            "title": "Input / Output options",
+            "type": "object",
+            "description": "General Input",
+            "default": "",
+            "properties": {
+                "input": {
+                    "type": "string",
+                    "format": "file-path",
+                    "fa_icon": "fas fa-sign-in-alt",
+                    "description": "Path or S3 URI to the input genome FASTA file (gzipped)"
+                },
+                "output_dir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "fa_icon": "fas fa-sign-out-alt",
+                    "description": "Output directory or S3 URI where results are written to"
+                }
+            },
+            "required": [
+                "input",
+                "output_dir"
+            ],
+            "fa_icon": "fas fa-terminal"
+        },
+        "parameters": {
+            "title": "Parameters",
+            "type": "object",
+            "description": "Optional Parameters",
+            "default": "",
+            "properties": {
+                "hmm_profile": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to the HMM profile file used for nitrogen fixation gene detection",
+                    "help_text": "This should be the path to the nfixplanet HMM profiles (.hmm) file",
+                    "hidden": true,
+                    "default": "/vol/data/databases/clowm/CLDB-019d446b8a2e7fb8b797a2b3b819c485/latest/src/nfixplanet/reference_data/hmm_profiles/nfixplanet_models.hmm"
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/parameters"
+        }
+    ]
+}
