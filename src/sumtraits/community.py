@@ -1,6 +1,5 @@
 # metatraits/web/profile_annotation/processing.py
 
-import io
 import re
 import pandas as pd
 import numpy as np
@@ -45,7 +44,7 @@ def _make_matrix_row(
 
     return row
 
-
+# TODO: remove after updating _build_sample_matrix 
 def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
     columns = [
         "taxon_id",
@@ -107,7 +106,7 @@ def _zero_series(columns: list[str]) -> pd.Series:
     return pd.Series(0.0, index=columns, dtype=float)
 
 
-# TODO refactor this god awful mess
+# TODO refactor to make this more readable
 def _build_sample_matrix(
     consolidated: pd.DataFrame, profile: pd.DataFrame
 ) -> pd.DataFrame:
@@ -145,6 +144,7 @@ def _build_sample_matrix(
             merged[column] = merged[column].fillna(0.0)
 
         # TODO: The only unannotated rows are profile.index = -1
+        # Unannotated sum
         annotated_tax_ids = set(
             merged.loc[merged["status"].isin(ANNOTATED_STATUSES), "taxon_id"]
         )
@@ -155,6 +155,7 @@ def _build_sample_matrix(
         if unannotated_sum.empty:
             unannotated_sum = zero_values.copy()
 
+        # No majority sum
         no_majority_sum = merged.loc[
             merged["status"] == "no_robust_majority", sample_columns
         ].sum()
@@ -162,7 +163,7 @@ def _build_sample_matrix(
             no_majority_sum = zero_values.copy()
 
         consensus_rows = merged.loc[merged["status"] == "consensus"].copy()
-
+        # TODO: break into smaller helper functions
         if value_type == "boolean":
             true_sum = consensus_rows.loc[
                 consensus_rows["consensus_bool"] == True, sample_columns
