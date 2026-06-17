@@ -3,24 +3,8 @@ from pathlib import Path
 import pandas as pd
 
 from taxonomic_profile_translator import factory
-from taxonomic_profile_translator.enums import (
-    PROFILE_TO_TAXONOMY,
-    ProfileType,
-    Taxonomy,
-)
+from taxonomic_profile_translator.enums import ProfileType, Taxonomy
 from taxonomic_profile_translator.errors import TranslationError
-
-
-def _convert_profile_type(
-    profile_type: str
-) -> tuple[ProfileType, Taxonomy | None]:
-    if profile_type == "generic_ncbi":
-        return ProfileType("generic"), Taxonomy("NCBI")
-    elif profile_type == "generic_gtdb":
-        return ProfileType("generic"), Taxonomy("GTDB")
-    else:
-        converted_profile_type = ProfileType(profile_type)
-        return converted_profile_type, PROFILE_TO_TAXONOMY[converted_profile_type]
 
 
 def _get_profile_with_smallest_rank(
@@ -59,13 +43,12 @@ def translate_profile(
     Use the taxonomic profile translator to convert to tax IDs.
     Also return the species level profile
     """
-    profile_type, profile_taxonomy = _convert_profile_type(taxonomic_profile_type)
-    translate_to = Taxonomy(taxonomy_type.upper())
+    profile_type = ProfileType(taxonomic_profile_type)
+    translate_to = Taxonomy[taxonomy_type.upper()]
 
     profile = factory.ProfileFactory.create(
         file_path=str(file_path),
         profile_type=profile_type,
-        taxonomy=profile_taxonomy,
         translate_to=translate_to,
     )
     rank_to_translation = profile.process()
