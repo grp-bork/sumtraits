@@ -66,6 +66,36 @@ def test_write_output_archive_contains_expected_files(tmp_path):
     assert original == "original profile\n"
 
 
+def test_write_output_archive_adds_symlink_target_as_regular_file(tmp_path):
+    target_file = tmp_path / "actual_profile.tsv"
+    target_file.write_text("target profile\n", encoding="utf-8")
+    input_file = tmp_path / "profile.tsv"
+    input_file.symlink_to(target_file)
+    output_dir = tmp_path / "out"
+    normalized_profile = pd.DataFrame({"taxon_id": [1], "sample_a": [1.0]})
+    trait_summary = pd.DataFrame({"taxon_id": [1], "trait_name": ["motility"]})
+    community_summary = pd.DataFrame(
+        {"trait": ["motility"], "summary_type": ["consensus_true"], "sample_a": [1.0]}
+    )
+
+    archive_path = processing.write_output_archive(
+        output_dir,
+        input_file,
+        "ncbi",
+        normalized_profile,
+        trait_summary,
+        community_summary,
+    )
+
+    with tarfile.open(archive_path, "r:gz") as tar:
+        member = tar.getmember("profile.tsv")
+        original = tar.extractfile(member).read().decode("utf-8")
+
+    assert member.isfile()
+    assert not member.issym()
+    assert original == "target profile\n"
+
+
 def test_write_output_archive_rejects_output_path_that_is_file(tmp_path):
     input_file = tmp_path / "profile.tsv"
     input_file.write_text("original profile\n", encoding="utf-8")

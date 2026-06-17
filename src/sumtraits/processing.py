@@ -44,6 +44,15 @@ def _add_bytes_to_tar(tar: tarfile.TarFile, name: str, data: bytes) -> None:
     tar.addfile(info, io.BytesIO(data))
 
 
+def _add_input_profile_to_tar(tar: tarfile.TarFile, taxonomic_profile: Path) -> None:
+    profile_source = (
+        taxonomic_profile.resolve(strict=True)
+        if taxonomic_profile.is_symlink()
+        else taxonomic_profile
+    )
+    tar.add(profile_source, arcname=taxonomic_profile.name, recursive=False)
+
+
 def write_output_archive(
     output_dir: Path,
     taxonomic_profile: Path,
@@ -79,6 +88,6 @@ def write_output_archive(
             "community_trait_annotations.tsv",
             community_summary.to_csv(sep="\t", index=False).encode("utf-8"),
         )
-        tar.add(taxonomic_profile, arcname=taxonomic_profile.name)
+        _add_input_profile_to_tar(tar, taxonomic_profile)
 
     return archive_path
