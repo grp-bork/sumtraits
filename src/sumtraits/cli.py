@@ -4,7 +4,7 @@ import argparse
 import logging
 from pathlib import Path
 
-from sumtraits.config import TaxonomicProfileType, TaxonomyType
+from taxonomic_profile_translator.enums import ProfileType, Taxonomy
 
 
 def _configure_logging(verbose: bool) -> None:
@@ -51,13 +51,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--taxonomic-profile-type",
         required=True,
-        choices=[profile_type.value for profile_type in TaxonomicProfileType],
+        choices=[profile_type.value for profile_type in ProfileType],
         help="Type of the input taxonomic profile file.",
     )
     parser.add_argument(
         "--taxonomy-type",
         required=True,
-        choices=[taxonomy_type.value for taxonomy_type in TaxonomyType],
+        choices=[taxonomy.value.lower() for taxonomy in Taxonomy],
         help="Target taxonomy to use.",
     )
     parser.add_argument(
