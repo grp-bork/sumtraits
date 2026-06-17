@@ -11,6 +11,7 @@ It translates an input profile to NCBI or GTDB taxon IDs, looks up matching meta
 - `taxonkit` and the NCBI taxonomy database, if they are not already installed on the system
 
 The Python package depends on `numpy`, `pandas`, and `taxonomic-profile-translator`.
+Supported profile formats and target taxonomies are defined by `taxonomic-profile-translator`.
 
 ## Installation
 
@@ -52,19 +53,13 @@ BASE_DIR=/path/to/reference_data bash scripts/create_reference_files.sh
 
 ## Taxonomy Tools
 
-If `taxonkit` is not installed, run:
+If `taxonkit` or its required NCBI taxonomy database is not installed, run:
 
 ```bash
-python scripts/install_taxonkit.py
+tpt install
 ```
 
-If the NCBI taxonomy database used by `taxonomic-profile-translator` is not installed, run:
-
-```bash
-python scripts/install_db.py
-```
-
-These scripts use installers provided by `taxonomic-profile-translator`.
+NOTE: this requires `taxonomic-profile-translator` to be installed.
 
 ## Usage
 
@@ -90,19 +85,21 @@ sumtraits \
 
 Supported profile types:
 
-- `motus`
-- `metaphlan`
-- `kraken2`
-- `krakenuniq`
-- `bracken`
-- `kaiju`
 - `generic_ncbi`
 - `generic_gtdb`
+- `motus`
+- `metaphlan`
+- `krakenuniq`
+- `kraken2`
+- `bracken`
+- `kaiju`
 
 Supported target taxonomies:
 
 - `ncbi`
 - `gtdb`
+
+The target taxonomy is the taxonomy used for trait lookup. The source taxonomy is inferred by `taxonomic-profile-translator` from `--taxonomic-profile-type`.
 
 Optional flags:
 
@@ -131,7 +128,7 @@ The community summary includes rows for consensus trait states, numeric trait me
 Run the test suite with:
 
 ```bash
-pytest
+conda run -n sumtraits-dev python -m pytest -q
 ```
 
 The main modules are:
