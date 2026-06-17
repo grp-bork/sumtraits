@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sumtraits"
-version = "0.1.0"
+version = "0.2.0"
 description = "Command-line tools for summarizing traits from taxonomic profiles."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "pandas",
-    "taxonomic-profile-translator @ git+https://git.embl.org/robbani/taxonomic-profile-translator.git",
+    "taxonomic-profile-translator @ git+https://git.embl.org/robbani/taxonomic-profile-translator.git@1aba2bb8956994aaa1d2f9cf0812b4d79091c05e",
 ]
 
 [project.optional-dependencies]
