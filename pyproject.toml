@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy",
     "pandas",
-    "taxonomic-profile-translator @ git+https://git.embl.org/robbani/taxonomic-profile-translator.git@1aba2bb8956994aaa1d2f9cf0812b4d79091c05e",
+    "taxonomic-profile-translator @ git+https://git.embl.org/robbani/taxonomic-profile-translator.git@7a00d84c0202a76eb042ce25e631b99b71627210",
 ]
 
 [project.optional-dependencies]
