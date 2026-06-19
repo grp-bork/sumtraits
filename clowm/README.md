@@ -41,7 +41,7 @@ nextflow run main.nf \
 
 ## Output files
 
-The workflow writes a compressed archive to `--output_dir`. For an input file named `profile.tsv` and target taxonomy `ncbi`, the archive is named `profile_summary_ncbi.tar.gz`.
+The workflow writes a set of output files directly to `--output_dir`.
 
 | File | Description |
 |------|-------------|

@@ -5,7 +5,7 @@ from sumtraits.translate import translate_profile
 from sumtraits.processing import (
     get_trait_summary,
     normalize_profile,
-    write_output_archive,
+    write_output_files,
 )
 from sumtraits.community import create_community_summary
 
@@ -56,7 +56,7 @@ def run(
 
     logger.info("Created community summary file")
 
-    archive_path = write_output_archive(
+    write_output_files(
         output_dir,
         taxonomic_profile,
         taxonomy_type,
@@ -64,6 +64,6 @@ def run(
         trait_summary,
         community_summary,
     )
-    logger.info("Wrote output archive: %s", archive_path)
+    logger.info("Wrote output files: %s", output_dir)
 
     return 0

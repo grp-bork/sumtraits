@@ -71,7 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         required=True,
         type=Path,
-        help="Directory where the output tarball will be written.",
+        help="Directory where the output files will be written.",
     )
     parser.add_argument(
         "--exclude-prediction-based",
