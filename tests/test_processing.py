@@ -1,5 +1,3 @@
-import tarfile
-
 import pandas as pd
 import pytest
 
@@ -31,7 +29,7 @@ def test_normalize_profile_moves_index_to_taxon_id_column():
     assert str(result["taxon_id"].dtype) == "int64"
 
 
-def test_write_output_archive_contains_expected_files(tmp_path):
+def test_write_output_files_contains_expected_files(tmp_path):
     input_file = tmp_path / "profile.tsv"
     input_file.write_text("original profile\n", encoding="utf-8")
     output_dir = tmp_path / "out"
@@ -41,7 +39,7 @@ def test_write_output_archive_contains_expected_files(tmp_path):
         {"trait": ["motility"], "summary_type": ["consensus_true"], "sample_a": [1.0]}
     )
 
-    archive_path = processing.write_output_archive(
+    processing.write_output_files(
         output_dir,
         input_file,
         "ncbi",
@@ -50,23 +48,22 @@ def test_write_output_archive_contains_expected_files(tmp_path):
         community_summary,
     )
 
-    assert archive_path == output_dir / "profile_summary_ncbi.tar.gz"
-    with tarfile.open(archive_path, "r:gz") as tar:
-        names = tar.getnames()
-        assert names == [
+    assert sorted(path.name for path in output_dir.iterdir()) == sorted(
+        [
             "profile.ncbi.tsv",
             "taxon_trait_annotations.tsv",
             "community_trait_annotations.tsv",
             "profile.tsv",
         ]
-        normalized = tar.extractfile("profile.ncbi.tsv").read().decode("utf-8")
-        original = tar.extractfile("profile.tsv").read().decode("utf-8")
+    )
+    normalized = (output_dir / "profile.ncbi.tsv").read_text(encoding="utf-8")
+    original = (output_dir / "profile.tsv").read_text(encoding="utf-8")
 
     assert "taxon_id\tsample_a" in normalized
     assert original == "original profile\n"
 
 
-def test_write_output_archive_adds_symlink_target_as_regular_file(tmp_path):
+def test_write_output_files_copies_symlink_target_as_regular_file(tmp_path):
     target_file = tmp_path / "actual_profile.tsv"
     target_file.write_text("target profile\n", encoding="utf-8")
     input_file = tmp_path / "profile.tsv"
@@ -78,7 +75,7 @@ def test_write_output_archive_adds_symlink_target_as_regular_file(tmp_path):
         {"trait": ["motility"], "summary_type": ["consensus_true"], "sample_a": [1.0]}
     )
 
-    archive_path = processing.write_output_archive(
+    processing.write_output_files(
         output_dir,
         input_file,
         "ncbi",
@@ -87,23 +84,20 @@ def test_write_output_archive_adds_symlink_target_as_regular_file(tmp_path):
         community_summary,
     )
 
-    with tarfile.open(archive_path, "r:gz") as tar:
-        member = tar.getmember("profile.tsv")
-        original = tar.extractfile(member).read().decode("utf-8")
+    copied_profile = output_dir / "profile.tsv"
 
-    assert member.isfile()
-    assert not member.issym()
-    assert original == "target profile\n"
+    assert not copied_profile.is_symlink()
+    assert copied_profile.read_text(encoding="utf-8") == "target profile\n"
 
 
-def test_write_output_archive_rejects_output_path_that_is_file(tmp_path):
+def test_write_output_files_rejects_output_path_that_is_file(tmp_path):
     input_file = tmp_path / "profile.tsv"
     input_file.write_text("original profile\n", encoding="utf-8")
     output_path = tmp_path / "not-a-directory"
     output_path.write_text("", encoding="utf-8")
 
     with pytest.raises(NotADirectoryError):
-        processing.write_output_archive(
+        processing.write_output_files(
             output_path,
             input_file,
             "ncbi",
