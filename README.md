@@ -2,7 +2,7 @@
 
 `sumtraits` is a command-line tool for summarizing microbial trait annotations from taxonomic profiles.
 
-It translates an input profile to NCBI or GTDB taxon IDs, looks up matching metaTraits summaries, and writes a compressed output archive containing the translated profile, taxon-level trait annotations, and community-level trait summaries.
+It translates an input profile to NCBI or GTDB taxon IDs, looks up matching metaTraits summaries, and writes output files containing the translated profile, taxon-level trait annotations, and community-level trait summaries.
 
 ## Requirements
 
@@ -108,13 +108,7 @@ Optional flags:
 
 ## Output
 
-For an input file named `profile.tsv` and `--taxonomy-type ncbi`, `sumtraits` writes:
-
-```text
-OUTPUT_DIR/profile_summary_ncbi.tar.gz
-```
-
-The archive contains:
+For an input file named `profile.tsv` and `--taxonomy-type ncbi`, `sumtraits` writes the following files to `OUTPUT_DIR`:
 
 - `profile.ncbi.tsv`: translated and normalized taxonomic profile.
 - `taxon_trait_annotations.tsv`: taxon-level trait summary rows matching the translated taxon IDs.
