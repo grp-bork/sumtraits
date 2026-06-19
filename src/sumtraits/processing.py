@@ -1,5 +1,4 @@
-import io
-import tarfile
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -38,56 +37,39 @@ def normalize_profile(profile: pd.DataFrame) -> pd.DataFrame:
     return normalized
 
 
-def _add_bytes_to_tar(tar: tarfile.TarFile, name: str, data: bytes) -> None:
-    info = tarfile.TarInfo(name=name)
-    info.size = len(data)
-    tar.addfile(info, io.BytesIO(data))
-
-
-def _add_input_profile_to_tar(tar: tarfile.TarFile, taxonomic_profile: Path) -> None:
+def _copy_input_profile(taxonomic_profile: Path, destination: Path) -> None:
     profile_source = (
         taxonomic_profile.resolve(strict=True)
         if taxonomic_profile.is_symlink()
         else taxonomic_profile
     )
-    tar.add(profile_source, arcname=taxonomic_profile.name, recursive=False)
+    shutil.copyfile(profile_source, destination)
 
 
-def write_output_archive(
+def write_output_files(
     output_dir: Path,
     taxonomic_profile: Path,
     taxonomy_type: str,
     normalized_profile: pd.DataFrame,
     trait_summary: pd.DataFrame,
     community_summary: pd.DataFrame,
-) -> Path:
+) -> None:
     input_file_basename = taxonomic_profile.stem
 
     if output_dir.exists() and not output_dir.is_dir():
         raise NotADirectoryError(f"Output path is not a directory: {output_dir}")
+
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    archive_path = (
-        output_dir
-        / f"{input_file_basename}_summary_{taxonomy_type}.tar.gz"
+    normalized_profile.to_csv(
+        output_dir / f"{input_file_basename}.{taxonomy_type}.tsv",
+        sep="\t",
+        index=False,
     )
-
-    with tarfile.open(archive_path, mode="w:gz") as tar:
-        _add_bytes_to_tar(
-            tar,
-            f"{input_file_basename}.{taxonomy_type}.tsv",
-            normalized_profile.to_csv(sep="\t", index=False).encode("utf-8"),
-        )
-        _add_bytes_to_tar(
-            tar,
-            "taxon_trait_annotations.tsv",
-            trait_summary.to_csv(sep="\t", index=False).encode("utf-8"),
-        )
-        _add_bytes_to_tar(
-            tar,
-            "community_trait_annotations.tsv",
-            community_summary.to_csv(sep="\t", index=False).encode("utf-8"),
-        )
-        _add_input_profile_to_tar(tar, taxonomic_profile)
-
-    return archive_path
+    trait_summary.to_csv(
+        output_dir / "taxon_trait_annotations.tsv", sep="\t", index=False
+    )
+    community_summary.to_csv(
+        output_dir / "community_trait_annotations.tsv", sep="\t", index=False
+    )
+    _copy_input_profile(taxonomic_profile, output_dir / taxonomic_profile.name)

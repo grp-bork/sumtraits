@@ -45,7 +45,7 @@ def test_run_writes_archive_on_success(monkeypatch):
         )
         return community_summary
 
-    def fake_write_output_archive(
+    def fake_write_output_files(
         output_dir,
         taxonomic_profile,
         taxonomy_type,
@@ -55,7 +55,7 @@ def test_run_writes_archive_on_success(monkeypatch):
     ):
         calls.append(
             (
-                "archive",
+                "output_files",
                 output_dir,
                 taxonomic_profile,
                 taxonomy_type,
@@ -64,7 +64,7 @@ def test_run_writes_archive_on_success(monkeypatch):
                 community_rows is community_summary,
             )
         )
-        return "out/profile_summary_ncbi.tar.gz"
+        return "out/profile_summary_ncbi"
 
     monkeypatch.setattr(workflow, "translate_profile", fake_translate_profile)
     monkeypatch.setattr(workflow, "normalize_profile", fake_normalize_profile)
@@ -72,7 +72,7 @@ def test_run_writes_archive_on_success(monkeypatch):
     monkeypatch.setattr(
         workflow, "create_community_summary", fake_create_community_summary
     )
-    monkeypatch.setattr(workflow, "write_output_archive", fake_write_output_archive)
+    monkeypatch.setattr(workflow, "write_output_files", fake_write_output_files)
 
     exit_code = workflow.run(
         Path("profile.tsv"),
@@ -90,7 +90,7 @@ def test_run_writes_archive_on_success(monkeypatch):
         ("trait_summary", {42}, "ncbi", Path("reference_data"), False),
         ("community_summary", True, True),
         (
-            "archive",
+            "output_files",
             Path("out"),
             Path("profile.tsv"),
             "ncbi",
@@ -147,8 +147,8 @@ def test_run_returns_one_when_trait_summary_is_empty(monkeypatch):
     )
     monkeypatch.setattr(
         workflow,
-        "write_output_archive",
-        lambda *args: pytest.fail("archive should not be written"),
+        "write_output_files",
+        lambda *args: pytest.fail("output files should not be written"),
     )
 
     assert (
