@@ -75,7 +75,7 @@
                     "description": "Directory containing the sumtraits reference data files",
                     "help_text": "The directory must contain ncbi_all.tsv, ncbi_no_predictions.tsv, gtdb_all.tsv, and gtdb_no_predictions.tsv.",
                     "hidden": true,
-                    "default": "/vol/data/databases/clowm/CLDB-019eb1eed5d875118e54ee5d90f8c3e1/latest/reference_data"
+                    "default": "/vol/data/databases/clowm/CLDB-019eefc9939e7ebb99de410e12934bb3/019eefc993a4709f95eb40ce9f2fccd0/reference_data"
                 },
                 "exclude_prediction_based": {
                     "type": "boolean",
