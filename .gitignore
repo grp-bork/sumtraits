@@ -1,10 +1,13 @@
 reference_code/*
 reference_data/*
 test_data/*
+test_results/*
+test_results_old/*
 __pycache__/
 *.py[cod]
 tmp/*
 .tmp
+tests/*
 sumtraits.egg-info
 memray*
 *.log
