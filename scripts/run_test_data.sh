@@ -10,15 +10,20 @@ set -euo pipefail
 # file (motus3_default.tsv) is run; motus3_db.tsv, motus3_ngless.tsv and
 # motus3_single.tsv are intentionally skipped since they share the same
 # "motus" profile_type and would collide in the output layout.
+# declare -A PROFILE_TYPE=(
+#   [test_data/bracken_NCBI.tsv]="bracken"
+#   [test_data/kaiju_NCBI.txt]="kaiju"
+#   [test_data/kraken2_GTDB.txt]="kraken2"
+#   [test_data/krakenuniq_GTDB.txt]="krakenuniq"
+#   [test_data/metaphlan4_default.txt]="metaphlan"
+#   [test_data/GTDB_genus_enterotype.tsv]="generic_gtdb"
+#   [test_data/NCBI_genus_enterotype.tsv]="generic_ncbi"
+#   [test_data/motus3_default.tsv]="motus"
+# )
 declare -A PROFILE_TYPE=(
-  [test_data/bracken_NCBI.tsv]="bracken"
-  [test_data/kaiju_NCBI.txt]="kaiju"
-  [test_data/kraken2_GTDB.txt]="kraken2"
-  [test_data/krakenuniq_GTDB.txt]="krakenuniq"
-  [test_data/metaphlan4_default.txt]="metaphlan"
-  [test_data/GTDB_genus_enterotype.tsv]="generic_gtdb"
-  [test_data/NCBI_genus_enterotype.tsv]="generic_ncbi"
-  [test_data/motus3_default.tsv]="motus"
+  [test_data/GTDB_genus_enterotype_truncated.tsv]="generic_gtdb"
+  [test_data/NCBI_genus_enterotype_truncated.tsv]="generic_ncbi"
+  [test_data/motus3_truncated.tsv]="motus"
 )
 
 REFERENCE_DATA_DIR="reference_data"

@@ -25,9 +25,9 @@ OUTPUT_FILE_NAMES = ["taxon_trait_annotations.tsv", "community_trait_annotations
 # Run regularly: cheap enough for routine test runs.
 DEFAULT_PROFILE_TYPES = {
     "metaphlan": "metaphlan4_default.txt",
-    "motus": "motus3_default.tsv",
-    "generic_ncbi": "NCBI_genus_enterotype.tsv",
-    "generic_gtdb": "GTDB_genus_enterotype.tsv",
+    "motus": "motus3_truncated.tsv",
+    "generic_ncbi": "NCBI_genus_enterotype_truncated.tsv",
+    "generic_gtdb": "GTDB_genus_enterotype_truncated.tsv",
 }
 
 # Only run on demand (`pytest -m e2e`): redundant translator code paths that
