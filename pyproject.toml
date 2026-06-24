@@ -27,3 +27,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not e2e'"
+markers = [
+    "e2e: slower end-to-end pipeline tests, run explicitly with `pytest -m e2e`",
+]
