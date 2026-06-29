@@ -111,7 +111,6 @@ def _zero_series(columns: list[str]) -> pd.Series:
 def _build_sample_matrix(
     consolidated: pd.DataFrame, profile: pd.DataFrame
 ) -> pd.DataFrame:
-    abundance = profile
     sample_columns = list(profile.columns[1:])
     base_columns = [
         "trait",
@@ -126,47 +125,45 @@ def _build_sample_matrix(
 
     # TODO: profile.index should be used instead of abundance["taxon_id"]
     # TODO: figure out how to group the unclassified code
-    unclassified_sum = abundance.loc[abundance["taxon_id"] == -1, sample_columns].sum()
+    unclassified_sum = profile.loc[profile["taxon_id"] == -1, sample_columns].sum()
     if unclassified_sum.empty:
         unclassified_sum = zero_values
 
-    grouped = consolidated.groupby("trait", sort=False)
+    # TODO: trait_rows.taxon_id should be merged with profile.index
+    merged = consolidated.merge(profile, on="taxon_id", how="left")
+    # TODO: Check if this is needed
+    merged[sample_columns] = merged[sample_columns].fillna(0.0)
 
-    for trait, trait_rows in grouped:
+    grouped = merged.groupby("trait", sort=False)
+
+    for trait, merged_rows in grouped:
         # TODO: remove this later since we'll exclude the column form the output
         feature_slug = _slugify(trait)
         # TODO: use unit
-        value_type_candidates = trait_rows["value_type"].dropna().unique()
+        value_type_candidates = merged_rows["value_type"].dropna().unique()
         value_type = (
             value_type_candidates[0] if len(value_type_candidates) else "factor"
         )
-        # TODO: trait_rows.taxon_id should be merged with profile.index
-        merged = trait_rows.merge(abundance, on="taxon_id", how="left")
-        # TODO: This is impossible. tax ids are used to query the database
-        # There can be tax ids with no traits but every trait
-        # must have a tax id
-        for column in sample_columns:
-            merged[column] = merged[column].fillna(0.0)
 
         # Unannotated sum
         annotated_tax_ids = set(
-            merged.loc[merged["status"].isin(ANNOTATED_STATUSES), "taxon_id"]
+            merged_rows.loc[merged_rows["status"].isin(ANNOTATED_STATUSES), "taxon_id"]
         )
-        unannotated_mask = (~abundance["taxon_id"].isin(annotated_tax_ids)) & (
-            abundance["taxon_id"] != -1
+        unannotated_mask = (~profile["taxon_id"].isin(annotated_tax_ids)) & (
+            profile["taxon_id"] != -1
         )
-        unannotated_sum = abundance.loc[unannotated_mask, sample_columns].sum()
+        unannotated_sum = profile.loc[unannotated_mask, sample_columns].sum()
         if unannotated_sum.empty:
             unannotated_sum = zero_values
 
         # No majority sum
-        no_majority_sum = merged.loc[
-            merged["status"] == "no_robust_majority", sample_columns
+        no_majority_sum = merged_rows.loc[
+            merged_rows["status"] == "no_robust_majority", sample_columns
         ].sum()
         if no_majority_sum.empty:
             no_majority_sum = zero_values
 
-        consensus_rows = merged.loc[merged["status"] == "consensus"]
+        consensus_rows = merged_rows.loc[merged_rows["status"] == "consensus"]
         # TODO: break into smaller helper functions
         if value_type == "boolean":
             true_sum = consensus_rows.loc[
