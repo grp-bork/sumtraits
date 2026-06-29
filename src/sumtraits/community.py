@@ -3,19 +3,20 @@
 import re
 import pandas as pd
 import numpy as np
+from pandas._typing import Scalar
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _slugify(text: str) -> str:
+def _slugify(text: Scalar) -> str:
     slug = re.sub(r"[^0-9A-Za-z]+", "_", str(text).strip().lower())
     return slug.strip("_") or "value"
 
 
 def _make_matrix_row(
-    trait: str,
+    trait: Scalar,
     feature_slug: str,
     state: str,
     summary_type: str,
@@ -40,6 +41,7 @@ def _make_matrix_row(
         row[column] = None if pd.isna(val) else float(val)
 
     return row
+
 
 def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
     # TODO: do not rename any columns. Only add the new columns required by _build_sample_matrix
@@ -81,11 +83,118 @@ def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
     return summary_df
 
 
-def _zero_series(columns: list[str]) -> pd.Series:
-    return pd.Series(0.0, index=columns, dtype=float)
+def _build_boolean_rows(
+    trait: Scalar,
+    feature_slug: str,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+    consensus_rows: pd.DataFrame,
+) -> list[dict]:
+    true_sum = consensus_rows.loc[
+        consensus_rows["consensus_bool"] == True, sample_columns
+    ].sum()
+    false_sum = consensus_rows.loc[
+        consensus_rows["consensus_bool"] == False, sample_columns
+    ].sum()
+    if true_sum.empty:
+        true_sum = zero_values
+    if false_sum.empty:
+        false_sum = zero_values
+
+    return [
+        _make_matrix_row(
+            trait, feature_slug, "true", "consensus_true", sample_columns, true_sum
+        ),
+        _make_matrix_row(
+            trait, feature_slug, "false", "consensus_false", sample_columns, false_sum
+        ),
+    ]
 
 
-# TODO refactor to make this more readable
+def _build_numeric_rows(
+    trait: Scalar,
+    feature_slug: str,
+    sample_columns: list[str],
+    consensus_rows: pd.DataFrame,
+) -> list[dict]:
+    numeric_rows = consensus_rows.loc[consensus_rows["consensus_numeric_value"].notna()]
+    if not numeric_rows.empty:
+        weighted_sum = (
+            numeric_rows[sample_columns]
+            .mul(numeric_rows["consensus_numeric_value"].astype(float), axis=0)
+            .sum()
+        )
+        total_weight = numeric_rows[sample_columns].sum()
+        denom = total_weight.replace(0.0, pd.NA)
+        mean_values = weighted_sum.divide(denom)
+    else:
+        mean_values = pd.Series(
+            [pd.NA] * len(sample_columns), index=sample_columns, dtype="float64"
+        )
+
+    return [
+        _make_matrix_row(
+            trait,
+            feature_slug,
+            "mean",
+            "numeric_mean",
+            sample_columns,
+            mean_values,
+            fill_value=None,
+        )
+    ]
+
+
+def _build_factor_rows(
+    trait: Scalar,
+    feature_slug: str,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+    consensus_rows: pd.DataFrame,
+) -> list[dict]:
+    if not consensus_rows.empty:
+        totals = consensus_rows[sample_columns].sum(axis=1)
+        value_totals = (
+            pd.DataFrame({"value": consensus_rows["consensus_value"], "total": totals})
+            .groupby("value")["total"]
+            .sum()
+            .sort_values(ascending=False)
+        )
+    else:
+        value_totals = pd.Series(dtype=float)
+
+    if not value_totals.empty:
+        majority_value = value_totals.index[0]
+        majority_mask = consensus_rows["consensus_value"] == majority_value
+        majority_sum = consensus_rows.loc[majority_mask, sample_columns].sum()
+        other_sum = consensus_rows.loc[~majority_mask, sample_columns].sum()
+    else:
+        majority_value = None
+        majority_sum = zero_values
+        other_sum = zero_values
+
+    state_slug = _slugify(majority_value) if majority_value is not None else "majority"
+
+    return [
+        _make_matrix_row(
+            trait,
+            feature_slug,
+            state_slug,
+            "consensus_majority",
+            sample_columns,
+            majority_sum,
+        ),
+        _make_matrix_row(
+            trait,
+            feature_slug,
+            "other",
+            "consensus_other",
+            sample_columns,
+            other_sum if not other_sum.empty else zero_values,
+        ),
+    ]
+
+
 def _build_sample_matrix(
     trait_summary: pd.DataFrame, profile: pd.DataFrame
 ) -> pd.DataFrame:
@@ -98,16 +207,13 @@ def _build_sample_matrix(
 
     zero_values = pd.Series(0.0, index=sample_columns, dtype=float)
 
-
     matrix_rows: list[dict] = []
 
-    # TODO: profile.index should be used instead of abundance["taxon_id"]
     # TODO: figure out how to group the unclassified code
     unclassified_sum = profile.loc[profile["taxon_id"] == -1, sample_columns].sum()
     if unclassified_sum.empty:
         unclassified_sum = zero_values
 
-    # TODO: trait_rows.taxon_id should be merged with profile.index
     merged = trait_summary.merge(profile, on="taxon_id", how="left")
     # TODO: Check if this is needed
     merged[sample_columns] = merged[sample_columns].fillna(0.0)
@@ -136,117 +242,20 @@ def _build_sample_matrix(
             no_majority_sum = zero_values
 
         consensus_rows = merged_rows.loc[merged_rows["is_consensus"]]
-        # TODO: break into smaller helper functions
         if value_type == "boolean":
-            true_sum = consensus_rows.loc[
-                consensus_rows["consensus_bool"] == True, sample_columns
-            ].sum()
-            false_sum = consensus_rows.loc[
-                consensus_rows["consensus_bool"] == False, sample_columns
-            ].sum()
-            if true_sum.empty:
-                true_sum = zero_values
-            if false_sum.empty:
-                false_sum = zero_values
-
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "true",
-                    "consensus_true",
-                    sample_columns,
-                    true_sum,
-                )
-            )
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "false",
-                    "consensus_false",
-                    sample_columns,
-                    false_sum,
+            matrix_rows.extend(
+                _build_boolean_rows(
+                    trait, feature_slug, sample_columns, zero_values, consensus_rows
                 )
             )
         elif value_type == "numeric":
-            numeric_rows = consensus_rows.loc[
-                consensus_rows["consensus_numeric_value"].notna()
-            ]
-            if not numeric_rows.empty:
-                weighted_sum = (
-                    numeric_rows[sample_columns]
-                    .mul(numeric_rows["consensus_numeric_value"].astype(float), axis=0)
-                    .sum()
-                )
-                total_weight = numeric_rows[sample_columns].sum()
-                denom = total_weight.replace(0.0, pd.NA)
-                mean_values = weighted_sum.divide(denom)
-            else:
-                mean_values = pd.Series(
-                    [pd.NA] * len(sample_columns), index=sample_columns, dtype="float64"
-                )
-
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "mean",
-                    "numeric_mean",
-                    sample_columns,
-                    mean_values,
-                    fill_value=None,
-                )
+            matrix_rows.extend(
+                _build_numeric_rows(trait, feature_slug, sample_columns, consensus_rows)
             )
         else:
-            if not consensus_rows.empty:
-                totals = consensus_rows[sample_columns].sum(axis=1)
-                value_totals = (
-                    pd.DataFrame(
-                        {"value": consensus_rows["consensus_value"], "total": totals}
-                    )
-                    .groupby("value")["total"]
-                    .sum()
-                    .sort_values(ascending=False)
-                )
-                if not value_totals.empty:
-                    majority_value = value_totals.index[0]
-                    majority_mask = consensus_rows["consensus_value"] == majority_value
-                    majority_sum = consensus_rows.loc[
-                        majority_mask, sample_columns
-                    ].sum()
-                    other_sum = consensus_rows.loc[~majority_mask, sample_columns].sum()
-                else:
-                    majority_value = None
-                    majority_sum = zero_values
-                    other_sum = zero_values
-            else:
-                majority_value = None
-                majority_sum = zero_values
-                other_sum = zero_values
-
-            state_slug = (
-                _slugify(majority_value) if majority_value is not None else "majority"
-            )
-
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    state_slug,
-                    "consensus_majority",
-                    sample_columns,
-                    majority_sum,
-                )
-            )
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "other",
-                    "consensus_other",
-                    sample_columns,
-                    other_sum if not other_sum.empty else zero_values,
+            matrix_rows.extend(
+                _build_factor_rows(
+                    trait, feature_slug, sample_columns, zero_values, consensus_rows
                 )
             )
 
