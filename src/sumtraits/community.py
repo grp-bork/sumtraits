@@ -44,8 +44,9 @@ def _make_matrix_row(
 
     return row
 
-# TODO: remove after updating _build_sample_matrix 
 def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
+    # TODO: rename this function.
+    # TODO: do not rename any columns. Only add the new columns required by _build_sample_matrix
     columns = [
         "taxon_id",
         "trait",
@@ -118,19 +119,23 @@ def _build_sample_matrix(
         "feature",
     ]
 
-    if consolidated.empty:
-        return pd.DataFrame(columns=base_columns + sample_columns)
     zero_values = _zero_series(sample_columns)
+
+
     matrix_rows: list[dict] = []
+
     # TODO: profile.index should be used instead of abundance["taxon_id"]
+    # TODO: figure out how to group the unclassified code
     unclassified_sum = abundance.loc[abundance["taxon_id"] == -1, sample_columns].sum()
     if unclassified_sum.empty:
-        unclassified_sum = zero_values.copy()
+        unclassified_sum = zero_values
 
     grouped = consolidated.groupby("trait", sort=False)
 
     for trait, trait_rows in grouped:
+        # TODO: remove this later since we'll exclude the column form the output
         feature_slug = _slugify(trait)
+        # TODO: use unit
         value_type_candidates = trait_rows["value_type"].dropna().unique()
         value_type = (
             value_type_candidates[0] if len(value_type_candidates) else "factor"
@@ -143,7 +148,6 @@ def _build_sample_matrix(
         for column in sample_columns:
             merged[column] = merged[column].fillna(0.0)
 
-        # TODO: The only unannotated rows are profile.index = -1
         # Unannotated sum
         annotated_tax_ids = set(
             merged.loc[merged["status"].isin(ANNOTATED_STATUSES), "taxon_id"]
@@ -153,16 +157,16 @@ def _build_sample_matrix(
         )
         unannotated_sum = abundance.loc[unannotated_mask, sample_columns].sum()
         if unannotated_sum.empty:
-            unannotated_sum = zero_values.copy()
+            unannotated_sum = zero_values
 
         # No majority sum
         no_majority_sum = merged.loc[
             merged["status"] == "no_robust_majority", sample_columns
         ].sum()
         if no_majority_sum.empty:
-            no_majority_sum = zero_values.copy()
+            no_majority_sum = zero_values
 
-        consensus_rows = merged.loc[merged["status"] == "consensus"].copy()
+        consensus_rows = merged.loc[merged["status"] == "consensus"]
         # TODO: break into smaller helper functions
         if value_type == "boolean":
             true_sum = consensus_rows.loc[
@@ -172,9 +176,9 @@ def _build_sample_matrix(
                 consensus_rows["consensus_bool"] == False, sample_columns
             ].sum()
             if true_sum.empty:
-                true_sum = zero_values.copy()
+                true_sum = zero_values
             if false_sum.empty:
-                false_sum = zero_values.copy()
+                false_sum = zero_values
 
             matrix_rows.append(
                 _make_matrix_row(
@@ -199,7 +203,7 @@ def _build_sample_matrix(
         elif value_type == "numeric":
             numeric_rows = consensus_rows.loc[
                 consensus_rows["consensus_numeric_value"].notna()
-            ].copy()
+            ]
             if not numeric_rows.empty:
                 weighted_sum = (
                     numeric_rows[sample_columns]
@@ -245,12 +249,12 @@ def _build_sample_matrix(
                     other_sum = consensus_rows.loc[~majority_mask, sample_columns].sum()
                 else:
                     majority_value = None
-                    majority_sum = zero_values.copy()
-                    other_sum = zero_values.copy()
+                    majority_sum = zero_values
+                    other_sum = zero_values
             else:
                 majority_value = None
-                majority_sum = zero_values.copy()
-                other_sum = zero_values.copy()
+                majority_sum = zero_values
+                other_sum = zero_values
 
             state_slug = (
                 _slugify(majority_value) if majority_value is not None else "majority"
