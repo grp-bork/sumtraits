@@ -1,3 +1,4 @@
+import io
 import shutil
 from pathlib import Path
 
@@ -11,6 +12,27 @@ def _get_summary_path(
 ) -> Path:
     prediction_tag = "no_predictions" if exclude_prediction_based else "all"
     return reference_data_dir / f"{taxonomy_type}_{prediction_tag}.tsv"
+
+
+def _read_tsv_filtered_by_taxon_id(data_path: Path, tax_ids: set[int]) -> pd.DataFrame:
+    """Read a TSV, keeping only rows whose first column matches a tax id.
+
+    Reference data files can have millions of rows while a profile only
+    needs a few hundred tax ids, so the matching rows are selected as plain
+    text before handing them to pandas. This avoids paying pandas' parsing
+    cost for rows that would just be filtered out anyway.
+    """
+    tax_id_strs = {str(tax_id) for tax_id in tax_ids}
+
+    matching_lines = []
+    with open(data_path, "r") as f:
+        matching_lines.append(f.readline())
+        for line in f:
+            taxon_id_str = line[: line.find("\t")]
+            if taxon_id_str in tax_id_strs:
+                matching_lines.append(line)
+
+    return pd.read_csv(io.StringIO("".join(matching_lines)), sep="\t")
 
 
 def get_trait_summary(
@@ -27,8 +49,7 @@ def get_trait_summary(
         taxonomy_type,
         exclude_prediction_based,
     )
-    trait_summary = pd.read_csv(data_path, sep="\t")
-    return trait_summary[trait_summary["taxon_id"].isin(tax_ids)]
+    return _read_tsv_filtered_by_taxon_id(data_path, tax_ids)
 
 
 def normalize_profile(profile: pd.DataFrame) -> pd.DataFrame:
