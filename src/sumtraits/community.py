@@ -20,27 +20,22 @@ def _make_matrix_row(
     feature_slug: str,
     state: str,
     summary_type: str,
-    sample_columns: list[str],
     values: pd.Series,
     *,
     fill_value: float | None = 0.0,
 ) -> dict:
-    aligned = values.reindex(sample_columns)
-    if fill_value is not None:
-        aligned = aligned.fillna(fill_value)
+    aligned = values.fillna(fill_value) if fill_value is not None else values
 
     feature_state_value = f"{feature_slug}.{state}"
-    row = {
+    return {
         "trait": trait,
         "feature": feature_state_value,
         "summary_type": summary_type,
+        **{
+            column: None if pd.isna(val) else float(val)
+            for column, val in aligned.items()
+        },
     }
-
-    for column in sample_columns:
-        val = aligned[column]
-        row[column] = None if pd.isna(val) else float(val)
-
-    return row
 
 
 def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
@@ -86,7 +81,6 @@ def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
 def _make_no_majority_row(
     trait: Scalar,
     feature_slug: str,
-    sample_columns: list[str],
     no_majority_sum: pd.Series,
 ) -> dict:
     return _make_matrix_row(
@@ -94,7 +88,6 @@ def _make_no_majority_row(
         feature_slug,
         "no_majority",
         "no_majority",
-        sample_columns,
         no_majority_sum,
     )
 
@@ -119,13 +112,9 @@ def _build_boolean_rows(
         false_sum = zero_values
 
     return [
-        _make_matrix_row(
-            trait, feature_slug, "true", "consensus_true", sample_columns, true_sum
-        ),
-        _make_matrix_row(
-            trait, feature_slug, "false", "consensus_false", sample_columns, false_sum
-        ),
-        _make_no_majority_row(trait, feature_slug, sample_columns, no_majority_sum),
+        _make_matrix_row(trait, feature_slug, "true", "consensus_true", true_sum),
+        _make_matrix_row(trait, feature_slug, "false", "consensus_false", false_sum),
+        _make_no_majority_row(trait, feature_slug, no_majority_sum),
     ]
 
 
@@ -156,7 +145,6 @@ def _build_numeric_rows(
             feature_slug,
             "mean",
             "numeric_mean",
-            sample_columns,
             mean_values,
             fill_value=None,
         )
@@ -200,7 +188,6 @@ def _build_factor_rows(
             feature_slug,
             state_slug,
             "consensus_majority",
-            sample_columns,
             majority_sum,
         ),
         _make_matrix_row(
@@ -208,10 +195,9 @@ def _build_factor_rows(
             feature_slug,
             "other",
             "consensus_other",
-            sample_columns,
             other_sum if not other_sum.empty else zero_values,
         ),
-        _make_no_majority_row(trait, feature_slug, sample_columns, no_majority_sum),
+        _make_no_majority_row(trait, feature_slug, no_majority_sum),
     ]
 
 
@@ -294,11 +280,7 @@ def _build_sample_matrix(
                     no_majority_sum,
                 )
             )
-        elif value_type == "numeric":
-            matrix_rows.extend(
-                _build_numeric_rows(trait, feature_slug, sample_columns, consensus_rows)
-            )
-        else:
+        elif value_type == "factor":
             matrix_rows.extend(
                 _build_factor_rows(
                     trait,
@@ -309,25 +291,21 @@ def _build_sample_matrix(
                     no_majority_sum,
                 )
             )
+        elif value_type == "numeric":
+            matrix_rows.extend(
+                _build_numeric_rows(trait, feature_slug, sample_columns, consensus_rows)
+            )
+        else:
+            logger.error(f"Invalid value type: {value_type}")
 
         matrix_rows.append(
             _make_matrix_row(
-                trait,
-                feature_slug,
-                "unannotated",
-                "unannotated",
-                sample_columns,
-                unannotated_sum,
+                trait, feature_slug, "unannotated", "unannotated", unannotated_sum
             )
         )
         matrix_rows.append(
             _make_matrix_row(
-                trait,
-                feature_slug,
-                "unclassified",
-                "unclassified",
-                sample_columns,
-                unclassified_sum,
+                trait, feature_slug, "unclassified", "unclassified", unclassified_sum
             )
         )
 
