@@ -47,28 +47,10 @@ def _make_matrix_row(
 def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
     # TODO: rename this function.
     # TODO: do not rename any columns. Only add the new columns required by _build_sample_matrix
-    columns = [
-        "taxon_id",
-        "trait",
-        "value_type",
-        "consensus_value",
-        "consensus_bool",
-        "consensus_numeric_value",
-        "support_count",
-        "support_percentage",
-        "total_evidence",
-        "source_databases",
-        "databases",
-        "status",
-    ]
     summary_df = summary_df.rename(
         columns={
             "trait_name": "trait",
             "mean": "consensus_numeric_value",
-            "consensus_count": "support_count",
-            "consensus_percentage": "support_percentage",
-            "total_observations": "total_evidence",
-            "database_count": "source_databases",
         }
     )
 
@@ -98,7 +80,6 @@ def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
         "no_robust_majority",
         "consensus",
     )
-    summary_df = summary_df.sort_values(["taxon_id", "trait"]).reset_index(drop=True)
 
     return summary_df
 
