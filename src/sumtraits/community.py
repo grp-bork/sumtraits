@@ -83,12 +83,29 @@ def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
     return summary_df
 
 
+def _make_no_majority_row(
+    trait: Scalar,
+    feature_slug: str,
+    sample_columns: list[str],
+    no_majority_sum: pd.Series,
+) -> dict:
+    return _make_matrix_row(
+        trait,
+        feature_slug,
+        "no_majority",
+        "no_majority",
+        sample_columns,
+        no_majority_sum,
+    )
+
+
 def _build_boolean_rows(
     trait: Scalar,
     feature_slug: str,
     sample_columns: list[str],
     zero_values: pd.Series,
     consensus_rows: pd.DataFrame,
+    no_majority_sum: pd.Series,
 ) -> list[dict]:
     true_sum = consensus_rows.loc[
         consensus_rows["consensus_bool"] == True, sample_columns
@@ -108,6 +125,7 @@ def _build_boolean_rows(
         _make_matrix_row(
             trait, feature_slug, "false", "consensus_false", sample_columns, false_sum
         ),
+        _make_no_majority_row(trait, feature_slug, sample_columns, no_majority_sum),
     ]
 
 
@@ -151,6 +169,7 @@ def _build_factor_rows(
     sample_columns: list[str],
     zero_values: pd.Series,
     consensus_rows: pd.DataFrame,
+    no_majority_sum: pd.Series,
 ) -> list[dict]:
     if not consensus_rows.empty:
         totals = consensus_rows[sample_columns].sum(axis=1)
@@ -192,7 +211,17 @@ def _build_factor_rows(
             sample_columns,
             other_sum if not other_sum.empty else zero_values,
         ),
+        _make_no_majority_row(trait, feature_slug, sample_columns, no_majority_sum),
     ]
+
+
+def _compute_unclassified_sum(
+    profile: pd.DataFrame,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+) -> pd.Series:
+    unclassified_sum = profile.loc[profile["taxon_id"] == -1, sample_columns].sum()
+    return unclassified_sum if not unclassified_sum.empty else zero_values
 
 
 def _compute_unannotated_sum(
@@ -214,7 +243,9 @@ def _compute_no_majority_sum(
     sample_columns: list[str],
     zero_values: pd.Series,
 ) -> pd.Series:
-    no_majority_sum = merged_rows.loc[~merged_rows["is_consensus"], sample_columns].sum()
+    no_majority_sum = merged_rows.loc[
+        ~merged_rows["is_consensus"], sample_columns
+    ].sum()
     return no_majority_sum if not no_majority_sum.empty else zero_values
 
 
@@ -230,18 +261,14 @@ def _build_sample_matrix(
 
     zero_values = pd.Series(0.0, index=sample_columns, dtype=float)
 
-    matrix_rows: list[dict] = []
-
-    # TODO: figure out how to group the unclassified code
-    unclassified_sum = profile.loc[profile["taxon_id"] == -1, sample_columns].sum()
-    if unclassified_sum.empty:
-        unclassified_sum = zero_values
+    unclassified_sum = _compute_unclassified_sum(profile, sample_columns, zero_values)
 
     merged = trait_summary.merge(profile, on="taxon_id", how="left")
     # TODO: Check if this is needed
     merged[sample_columns] = merged[sample_columns].fillna(0.0)
-
     grouped = merged.groupby("trait", sort=False)
+
+    matrix_rows: list[dict] = []
 
     for trait, merged_rows in grouped:
         # TODO: remove this later since we'll exclude the column form the output
@@ -251,13 +278,20 @@ def _build_sample_matrix(
         unannotated_sum = _compute_unannotated_sum(
             merged_rows, profile, sample_columns, zero_values
         )
-        no_majority_sum = _compute_no_majority_sum(merged_rows, sample_columns, zero_values)
+        no_majority_sum = _compute_no_majority_sum(
+            merged_rows, sample_columns, zero_values
+        )
 
         consensus_rows = merged_rows.loc[merged_rows["is_consensus"]]
         if value_type == "boolean":
             matrix_rows.extend(
                 _build_boolean_rows(
-                    trait, feature_slug, sample_columns, zero_values, consensus_rows
+                    trait,
+                    feature_slug,
+                    sample_columns,
+                    zero_values,
+                    consensus_rows,
+                    no_majority_sum,
                 )
             )
         elif value_type == "numeric":
@@ -267,21 +301,15 @@ def _build_sample_matrix(
         else:
             matrix_rows.extend(
                 _build_factor_rows(
-                    trait, feature_slug, sample_columns, zero_values, consensus_rows
-                )
-            )
-
-        if value_type != "numeric":
-            matrix_rows.append(
-                _make_matrix_row(
                     trait,
                     feature_slug,
-                    "no_majority",
-                    "no_majority",
                     sample_columns,
+                    zero_values,
+                    consensus_rows,
                     no_majority_sum,
                 )
             )
+
         matrix_rows.append(
             _make_matrix_row(
                 trait,
