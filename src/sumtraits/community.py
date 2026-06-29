@@ -44,7 +44,7 @@ def _make_matrix_row(
 
     return row
 
-def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
+def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
     # TODO: rename this function.
     # TODO: do not rename any columns. Only add the new columns required by _build_sample_matrix
     summary_df = summary_df.rename(
@@ -80,6 +80,7 @@ def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
         "no_robust_majority",
         "consensus",
     )
+    summary_df = summary_df.sort_values(["taxon_id", "trait"]).reset_index(drop=True)
 
     return summary_df
 
@@ -90,7 +91,7 @@ def _zero_series(columns: list[str]) -> pd.Series:
 
 # TODO refactor to make this more readable
 def _build_sample_matrix(
-    consolidated: pd.DataFrame, profile: pd.DataFrame
+    trait_summary: pd.DataFrame, profile: pd.DataFrame
 ) -> pd.DataFrame:
     sample_columns = list(profile.columns[1:])
     base_columns = [
@@ -111,7 +112,7 @@ def _build_sample_matrix(
         unclassified_sum = zero_values
 
     # TODO: trait_rows.taxon_id should be merged with profile.index
-    merged = consolidated.merge(profile, on="taxon_id", how="left")
+    merged = trait_summary.merge(profile, on="taxon_id", how="left")
     # TODO: Check if this is needed
     merged[sample_columns] = merged[sample_columns].fillna(0.0)
 
@@ -120,11 +121,7 @@ def _build_sample_matrix(
     for trait, merged_rows in grouped:
         # TODO: remove this later since we'll exclude the column form the output
         feature_slug = _slugify(trait)
-        # TODO: use unit
-        value_type_candidates = merged_rows["value_type"].dropna().unique()
-        value_type = (
-            value_type_candidates[0] if len(value_type_candidates) else "factor"
-        )
+        value_type = merged_rows["value_type"].iat[0]
 
         # Unannotated sum
         annotated_tax_ids = set(
@@ -301,7 +298,7 @@ def create_community_summary(
     trait_summary: pd.DataFrame,
     profile: pd.DataFrame,
 ) -> pd.DataFrame:
-    consolidated = _build_consolidated_table(trait_summary)
-    sample_matrix = _build_sample_matrix(consolidated, profile)
+    processed_trait_summary = _prepare_trait_summary(trait_summary)
+    sample_matrix = _build_sample_matrix(processed_trait_summary, profile)
 
     return sample_matrix
