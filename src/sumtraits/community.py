@@ -195,6 +195,29 @@ def _build_factor_rows(
     ]
 
 
+def _compute_unannotated_sum(
+    merged_rows: pd.DataFrame,
+    profile: pd.DataFrame,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+) -> pd.Series:
+    annotated_tax_ids = set(merged_rows["taxon_id"])
+    unannotated_mask = (~profile["taxon_id"].isin(annotated_tax_ids)) & (
+        profile["taxon_id"] != -1
+    )
+    unannotated_sum = profile.loc[unannotated_mask, sample_columns].sum()
+    return unannotated_sum if not unannotated_sum.empty else zero_values
+
+
+def _compute_no_majority_sum(
+    merged_rows: pd.DataFrame,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+) -> pd.Series:
+    no_majority_sum = merged_rows.loc[~merged_rows["is_consensus"], sample_columns].sum()
+    return no_majority_sum if not no_majority_sum.empty else zero_values
+
+
 def _build_sample_matrix(
     trait_summary: pd.DataFrame, profile: pd.DataFrame
 ) -> pd.DataFrame:
@@ -225,21 +248,10 @@ def _build_sample_matrix(
         feature_slug = _slugify(trait)
         value_type = merged_rows["value_type"].iat[0]
 
-        # Unannotated sum
-        annotated_tax_ids = set(merged_rows["taxon_id"])
-        unannotated_mask = (~profile["taxon_id"].isin(annotated_tax_ids)) & (
-            profile["taxon_id"] != -1
+        unannotated_sum = _compute_unannotated_sum(
+            merged_rows, profile, sample_columns, zero_values
         )
-        unannotated_sum = profile.loc[unannotated_mask, sample_columns].sum()
-        if unannotated_sum.empty:
-            unannotated_sum = zero_values
-
-        # No majority sum
-        no_majority_sum = merged_rows.loc[
-            ~merged_rows["is_consensus"], sample_columns
-        ].sum()
-        if no_majority_sum.empty:
-            no_majority_sum = zero_values
+        no_majority_sum = _compute_no_majority_sum(merged_rows, sample_columns, zero_values)
 
         consensus_rows = merged_rows.loc[merged_rows["is_consensus"]]
         if value_type == "boolean":
