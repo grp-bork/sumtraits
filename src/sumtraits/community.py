@@ -9,9 +9,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-ANNOTATED_STATUSES = {"consensus", "no_robust_majority"}
-
-
 def _slugify(text: str) -> str:
     slug = re.sub(r"[^0-9A-Za-z]+", "_", str(text).strip().lower())
     return slug.strip("_") or "value"
@@ -45,7 +42,6 @@ def _make_matrix_row(
     return row
 
 def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
-    # TODO: rename this function.
     # TODO: do not rename any columns. Only add the new columns required by _build_sample_matrix
     summary_df = summary_df.rename(
         columns={
@@ -75,10 +71,10 @@ def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
     summary_df["consensus_bool"] = summary_df["consensus_value"].apply(
         _get_consensus_bool
     )
-    summary_df["status"] = np.where(
+    summary_df["is_consensus"] = np.where(
         summary_df["consensus_value"] == "No robust majority",
-        "no_robust_majority",
-        "consensus",
+        False,
+        True,
     )
     summary_df = summary_df.sort_values(["taxon_id", "trait"]).reset_index(drop=True)
 
@@ -100,7 +96,7 @@ def _build_sample_matrix(
         "feature",
     ]
 
-    zero_values = _zero_series(sample_columns)
+    zero_values = pd.Series(0.0, index=sample_columns, dtype=float)
 
 
     matrix_rows: list[dict] = []
@@ -124,9 +120,7 @@ def _build_sample_matrix(
         value_type = merged_rows["value_type"].iat[0]
 
         # Unannotated sum
-        annotated_tax_ids = set(
-            merged_rows.loc[merged_rows["status"].isin(ANNOTATED_STATUSES), "taxon_id"]
-        )
+        annotated_tax_ids = set(merged_rows["taxon_id"])
         unannotated_mask = (~profile["taxon_id"].isin(annotated_tax_ids)) & (
             profile["taxon_id"] != -1
         )
@@ -136,12 +130,12 @@ def _build_sample_matrix(
 
         # No majority sum
         no_majority_sum = merged_rows.loc[
-            merged_rows["status"] == "no_robust_majority", sample_columns
+            ~merged_rows["is_consensus"], sample_columns
         ].sum()
         if no_majority_sum.empty:
             no_majority_sum = zero_values
 
-        consensus_rows = merged_rows.loc[merged_rows["status"] == "consensus"]
+        consensus_rows = merged_rows.loc[merged_rows["is_consensus"]]
         # TODO: break into smaller helper functions
         if value_type == "boolean":
             true_sum = consensus_rows.loc[
