@@ -3,71 +3,47 @@
 import re
 import pandas as pd
 import numpy as np
+from pandas._typing import Scalar
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-ANNOTATED_STATUSES = {"consensus", "no_robust_majority"}
-
-
-def _slugify(text: str) -> str:
+def _slugify(text: Scalar) -> str:
     slug = re.sub(r"[^0-9A-Za-z]+", "_", str(text).strip().lower())
     return slug.strip("_") or "value"
 
 
 def _make_matrix_row(
-    trait: str,
+    trait: Scalar,
     feature_slug: str,
     state: str,
     summary_type: str,
-    sample_columns: list[str],
     values: pd.Series,
     *,
     fill_value: float | None = 0.0,
 ) -> dict:
-    aligned = values.reindex(sample_columns)
-    if fill_value is not None:
-        aligned = aligned.fillna(fill_value)
+    aligned = values.fillna(fill_value) if fill_value is not None else values
 
     feature_state_value = f"{feature_slug}.{state}"
-    row = {
+    return {
         "trait": trait,
         "feature": feature_state_value,
         "summary_type": summary_type,
+        **{
+            column: None if pd.isna(val) else float(val)
+            for column, val in aligned.items()
+        },
     }
 
-    for column in sample_columns:
-        val = aligned[column]
-        row[column] = None if pd.isna(val) else float(val)
 
-    return row
-
-# TODO: remove after updating _build_sample_matrix 
-def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
-    columns = [
-        "taxon_id",
-        "trait",
-        "value_type",
-        "consensus_value",
-        "consensus_bool",
-        "consensus_numeric_value",
-        "support_count",
-        "support_percentage",
-        "total_evidence",
-        "source_databases",
-        "databases",
-        "status",
-    ]
+def _prepare_trait_summary(summary_df: pd.DataFrame) -> pd.DataFrame:
+    # TODO: do not rename any columns. Only add the new columns required by _build_sample_matrix
     summary_df = summary_df.rename(
         columns={
             "trait_name": "trait",
             "mean": "consensus_numeric_value",
-            "consensus_count": "support_count",
-            "consensus_percentage": "support_percentage",
-            "total_observations": "total_evidence",
-            "database_count": "source_databases",
         }
     )
 
@@ -92,25 +68,176 @@ def _build_consolidated_table(summary_df: pd.DataFrame) -> pd.DataFrame:
     summary_df["consensus_bool"] = summary_df["consensus_value"].apply(
         _get_consensus_bool
     )
-    summary_df["status"] = np.where(
+    summary_df["is_consensus"] = np.where(
         summary_df["consensus_value"] == "No robust majority",
-        "no_robust_majority",
-        "consensus",
+        False,
+        True,
     )
     summary_df = summary_df.sort_values(["taxon_id", "trait"]).reset_index(drop=True)
 
     return summary_df
 
 
-def _zero_series(columns: list[str]) -> pd.Series:
-    return pd.Series(0.0, index=columns, dtype=float)
+def _make_no_majority_row(
+    trait: Scalar,
+    feature_slug: str,
+    no_majority_sum: pd.Series,
+) -> dict:
+    return _make_matrix_row(
+        trait,
+        feature_slug,
+        "no_majority",
+        "no_majority",
+        no_majority_sum,
+    )
 
 
-# TODO refactor to make this more readable
+def _build_boolean_rows(
+    trait: Scalar,
+    feature_slug: str,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+    consensus_rows: pd.DataFrame,
+    no_majority_sum: pd.Series,
+) -> list[dict]:
+    true_sum = consensus_rows.loc[
+        consensus_rows["consensus_bool"] == True, sample_columns
+    ].sum()
+    false_sum = consensus_rows.loc[
+        consensus_rows["consensus_bool"] == False, sample_columns
+    ].sum()
+    if true_sum.empty:
+        true_sum = zero_values
+    if false_sum.empty:
+        false_sum = zero_values
+
+    return [
+        _make_matrix_row(trait, feature_slug, "true", "consensus_true", true_sum),
+        _make_matrix_row(trait, feature_slug, "false", "consensus_false", false_sum),
+        _make_no_majority_row(trait, feature_slug, no_majority_sum),
+    ]
+
+
+def _build_numeric_rows(
+    trait: Scalar,
+    feature_slug: str,
+    sample_columns: list[str],
+    consensus_rows: pd.DataFrame,
+) -> list[dict]:
+    numeric_rows = consensus_rows.loc[consensus_rows["consensus_numeric_value"].notna()]
+    if not numeric_rows.empty:
+        weighted_sum = (
+            numeric_rows[sample_columns]
+            .mul(numeric_rows["consensus_numeric_value"].astype(float), axis=0)
+            .sum()
+        )
+        total_weight = numeric_rows[sample_columns].sum()
+        denom = total_weight.replace(0.0, pd.NA)
+        mean_values = weighted_sum.divide(denom)
+    else:
+        mean_values = pd.Series(
+            [pd.NA] * len(sample_columns), index=sample_columns, dtype="float64"
+        )
+
+    return [
+        _make_matrix_row(
+            trait,
+            feature_slug,
+            "mean",
+            "numeric_mean",
+            mean_values,
+            fill_value=None,
+        )
+    ]
+
+
+def _build_factor_rows(
+    trait: Scalar,
+    feature_slug: str,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+    consensus_rows: pd.DataFrame,
+    no_majority_sum: pd.Series,
+) -> list[dict]:
+    if not consensus_rows.empty:
+        totals = consensus_rows[sample_columns].sum(axis=1)
+        value_totals = (
+            pd.DataFrame({"value": consensus_rows["consensus_value"], "total": totals})
+            .groupby("value")["total"]
+            .sum()
+            .sort_values(ascending=False)
+        )
+    else:
+        value_totals = pd.Series(dtype=float)
+
+    if not value_totals.empty:
+        majority_value = value_totals.index[0]
+        majority_mask = consensus_rows["consensus_value"] == majority_value
+        majority_sum = consensus_rows.loc[majority_mask, sample_columns].sum()
+        other_sum = consensus_rows.loc[~majority_mask, sample_columns].sum()
+    else:
+        majority_value = None
+        majority_sum = zero_values
+        other_sum = zero_values
+
+    state_slug = _slugify(majority_value) if majority_value is not None else "majority"
+
+    return [
+        _make_matrix_row(
+            trait,
+            feature_slug,
+            state_slug,
+            "consensus_majority",
+            majority_sum,
+        ),
+        _make_matrix_row(
+            trait,
+            feature_slug,
+            "other",
+            "consensus_other",
+            other_sum if not other_sum.empty else zero_values,
+        ),
+        _make_no_majority_row(trait, feature_slug, no_majority_sum),
+    ]
+
+
+def _compute_unclassified_sum(
+    profile: pd.DataFrame,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+) -> pd.Series:
+    unclassified_sum = profile.loc[profile["taxon_id"] == -1, sample_columns].sum()
+    return unclassified_sum if not unclassified_sum.empty else zero_values
+
+
+def _compute_unannotated_sum(
+    merged_rows: pd.DataFrame,
+    profile: pd.DataFrame,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+) -> pd.Series:
+    annotated_tax_ids = set(merged_rows["taxon_id"])
+    unannotated_mask = (~profile["taxon_id"].isin(annotated_tax_ids)) & (
+        profile["taxon_id"] != -1
+    )
+    unannotated_sum = profile.loc[unannotated_mask, sample_columns].sum()
+    return unannotated_sum if not unannotated_sum.empty else zero_values
+
+
+def _compute_no_majority_sum(
+    merged_rows: pd.DataFrame,
+    sample_columns: list[str],
+    zero_values: pd.Series,
+) -> pd.Series:
+    no_majority_sum = merged_rows.loc[
+        ~merged_rows["is_consensus"], sample_columns
+    ].sum()
+    return no_majority_sum if not no_majority_sum.empty else zero_values
+
+
 def _build_sample_matrix(
-    consolidated: pd.DataFrame, profile: pd.DataFrame
+    trait_summary: pd.DataFrame, profile: pd.DataFrame
 ) -> pd.DataFrame:
-    abundance = profile
     sample_columns = list(profile.columns[1:])
     base_columns = [
         "trait",
@@ -118,194 +245,67 @@ def _build_sample_matrix(
         "feature",
     ]
 
-    if consolidated.empty:
-        return pd.DataFrame(columns=base_columns + sample_columns)
-    zero_values = _zero_series(sample_columns)
+    zero_values = pd.Series(0.0, index=sample_columns, dtype=float)
+
+    unclassified_sum = _compute_unclassified_sum(profile, sample_columns, zero_values)
+
+    merged = trait_summary.merge(profile, on="taxon_id", how="left")
+    # TODO: Check if this is needed
+    merged[sample_columns] = merged[sample_columns].fillna(0.0)
+    grouped = merged.groupby("trait", sort=False)
+
     matrix_rows: list[dict] = []
-    # TODO: profile.index should be used instead of abundance["taxon_id"]
-    unclassified_sum = abundance.loc[abundance["taxon_id"] == -1, sample_columns].sum()
-    if unclassified_sum.empty:
-        unclassified_sum = zero_values.copy()
 
-    grouped = consolidated.groupby("trait", sort=False)
-
-    for trait, trait_rows in grouped:
+    for trait, merged_rows in grouped:
+        # TODO: remove this later since we'll exclude the column form the output
         feature_slug = _slugify(trait)
-        value_type_candidates = trait_rows["value_type"].dropna().unique()
-        value_type = (
-            value_type_candidates[0] if len(value_type_candidates) else "factor"
-        )
-        # TODO: trait_rows.taxon_id should be merged with profile.index
-        merged = trait_rows.merge(abundance, on="taxon_id", how="left")
-        # TODO: This is impossible. tax ids are used to query the database
-        # There can be tax ids with no traits but every trait
-        # must have a tax id
-        for column in sample_columns:
-            merged[column] = merged[column].fillna(0.0)
+        value_type = merged_rows["value_type"].iat[0]
 
-        # TODO: The only unannotated rows are profile.index = -1
-        # Unannotated sum
-        annotated_tax_ids = set(
-            merged.loc[merged["status"].isin(ANNOTATED_STATUSES), "taxon_id"]
+        unannotated_sum = _compute_unannotated_sum(
+            merged_rows, profile, sample_columns, zero_values
         )
-        unannotated_mask = (~abundance["taxon_id"].isin(annotated_tax_ids)) & (
-            abundance["taxon_id"] != -1
+        no_majority_sum = _compute_no_majority_sum(
+            merged_rows, sample_columns, zero_values
         )
-        unannotated_sum = abundance.loc[unannotated_mask, sample_columns].sum()
-        if unannotated_sum.empty:
-            unannotated_sum = zero_values.copy()
 
-        # No majority sum
-        no_majority_sum = merged.loc[
-            merged["status"] == "no_robust_majority", sample_columns
-        ].sum()
-        if no_majority_sum.empty:
-            no_majority_sum = zero_values.copy()
-
-        consensus_rows = merged.loc[merged["status"] == "consensus"].copy()
-        # TODO: break into smaller helper functions
+        consensus_rows = merged_rows.loc[merged_rows["is_consensus"]]
         if value_type == "boolean":
-            true_sum = consensus_rows.loc[
-                consensus_rows["consensus_bool"] == True, sample_columns
-            ].sum()
-            false_sum = consensus_rows.loc[
-                consensus_rows["consensus_bool"] == False, sample_columns
-            ].sum()
-            if true_sum.empty:
-                true_sum = zero_values.copy()
-            if false_sum.empty:
-                false_sum = zero_values.copy()
-
-            matrix_rows.append(
-                _make_matrix_row(
+            matrix_rows.extend(
+                _build_boolean_rows(
                     trait,
                     feature_slug,
-                    "true",
-                    "consensus_true",
                     sample_columns,
-                    true_sum,
-                )
-            )
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "false",
-                    "consensus_false",
-                    sample_columns,
-                    false_sum,
-                )
-            )
-        elif value_type == "numeric":
-            numeric_rows = consensus_rows.loc[
-                consensus_rows["consensus_numeric_value"].notna()
-            ].copy()
-            if not numeric_rows.empty:
-                weighted_sum = (
-                    numeric_rows[sample_columns]
-                    .mul(numeric_rows["consensus_numeric_value"].astype(float), axis=0)
-                    .sum()
-                )
-                total_weight = numeric_rows[sample_columns].sum()
-                denom = total_weight.replace(0.0, pd.NA)
-                mean_values = weighted_sum.divide(denom)
-            else:
-                mean_values = pd.Series(
-                    [pd.NA] * len(sample_columns), index=sample_columns, dtype="float64"
-                )
-
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "mean",
-                    "numeric_mean",
-                    sample_columns,
-                    mean_values,
-                    fill_value=None,
-                )
-            )
-        else:
-            if not consensus_rows.empty:
-                totals = consensus_rows[sample_columns].sum(axis=1)
-                value_totals = (
-                    pd.DataFrame(
-                        {"value": consensus_rows["consensus_value"], "total": totals}
-                    )
-                    .groupby("value")["total"]
-                    .sum()
-                    .sort_values(ascending=False)
-                )
-                if not value_totals.empty:
-                    majority_value = value_totals.index[0]
-                    majority_mask = consensus_rows["consensus_value"] == majority_value
-                    majority_sum = consensus_rows.loc[
-                        majority_mask, sample_columns
-                    ].sum()
-                    other_sum = consensus_rows.loc[~majority_mask, sample_columns].sum()
-                else:
-                    majority_value = None
-                    majority_sum = zero_values.copy()
-                    other_sum = zero_values.copy()
-            else:
-                majority_value = None
-                majority_sum = zero_values.copy()
-                other_sum = zero_values.copy()
-
-            state_slug = (
-                _slugify(majority_value) if majority_value is not None else "majority"
-            )
-
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    state_slug,
-                    "consensus_majority",
-                    sample_columns,
-                    majority_sum,
-                )
-            )
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "other",
-                    "consensus_other",
-                    sample_columns,
-                    other_sum if not other_sum.empty else zero_values,
-                )
-            )
-
-        if value_type != "numeric":
-            matrix_rows.append(
-                _make_matrix_row(
-                    trait,
-                    feature_slug,
-                    "no_majority",
-                    "no_majority",
-                    sample_columns,
+                    zero_values,
+                    consensus_rows,
                     no_majority_sum,
                 )
             )
+        elif value_type == "factor":
+            matrix_rows.extend(
+                _build_factor_rows(
+                    trait,
+                    feature_slug,
+                    sample_columns,
+                    zero_values,
+                    consensus_rows,
+                    no_majority_sum,
+                )
+            )
+        elif value_type == "numeric":
+            matrix_rows.extend(
+                _build_numeric_rows(trait, feature_slug, sample_columns, consensus_rows)
+            )
+        else:
+            logger.error(f"Invalid value type: {value_type}")
+
         matrix_rows.append(
             _make_matrix_row(
-                trait,
-                feature_slug,
-                "unannotated",
-                "unannotated",
-                sample_columns,
-                unannotated_sum,
+                trait, feature_slug, "unannotated", "unannotated", unannotated_sum
             )
         )
         matrix_rows.append(
             _make_matrix_row(
-                trait,
-                feature_slug,
-                "unclassified",
-                "unclassified",
-                sample_columns,
-                unclassified_sum,
+                trait, feature_slug, "unclassified", "unclassified", unclassified_sum
             )
         )
 
@@ -319,7 +319,7 @@ def create_community_summary(
     trait_summary: pd.DataFrame,
     profile: pd.DataFrame,
 ) -> pd.DataFrame:
-    consolidated = _build_consolidated_table(trait_summary)
-    sample_matrix = _build_sample_matrix(consolidated, profile)
+    processed_trait_summary = _prepare_trait_summary(trait_summary)
+    sample_matrix = _build_sample_matrix(processed_trait_summary, profile)
 
     return sample_matrix
