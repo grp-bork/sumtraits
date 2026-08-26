@@ -1,13 +1,15 @@
 reference_code/*
 reference_data/*
 test_data/*
-test_results/*
-test_results_old/*
+test_results*/*
 __pycache__/
 *.py[cod]
 tmp/*
 .tmp
 tests/*
+!tests/data/
+tests/data/*
+!tests/data/e2e_reference/
 sumtraits.egg-info
 memray*
 *.log
@@ -17,4 +19,5 @@ build
 dag*
 trace*
 work/*
-tmp2
+tmp*
+simple_test/*

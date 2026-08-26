@@ -35,8 +35,12 @@ def _trait_row(
     }
 
 
-def _row_by_summary_type(summary, summary_type):
-    matches = summary.loc[summary["summary_type"] == summary_type]
+def _row_by_annotation_status(summary, annotation_status, value=None):
+    matches = summary.loc[
+        (summary["annotation_status"] == annotation_status) & (summary["value"] == value)
+        if value is not None
+        else (summary["annotation_status"] == annotation_status) & summary["value"].isna()
+    ]
     assert matches.shape[0] == 1
     return matches.iloc[0]
 
@@ -59,12 +63,11 @@ def test_create_community_summary_handles_boolean_traits():
 
     result = create_community_summary(trait_summary, profile)
 
-    true_row = _row_by_summary_type(result, "consensus_true")
-    false_row = _row_by_summary_type(result, "consensus_false")
-    no_majority_row = _row_by_summary_type(result, "no_majority")
-    unannotated_row = _row_by_summary_type(result, "unannotated")
-    unclassified_row = _row_by_summary_type(result, "unclassified")
-    assert true_row["feature"] == "oxygen.true"
+    true_row = _row_by_annotation_status(result, "consensus", "true")
+    false_row = _row_by_annotation_status(result, "consensus", "false")
+    no_majority_row = _row_by_annotation_status(result, "no_majority")
+    unannotated_row = _row_by_annotation_status(result, "unannotated")
+    unclassified_row = _row_by_annotation_status(result, "unclassified")
     assert true_row["sample_a"] == pytest.approx(0.2)
     assert true_row["sample_b"] == pytest.approx(0.3)
     assert false_row["sample_a"] == pytest.approx(0.5)
@@ -94,11 +97,10 @@ def test_create_community_summary_handles_numeric_traits():
 
     result = create_community_summary(trait_summary, profile)
 
-    mean_row = _row_by_summary_type(result, "numeric_mean")
-    assert mean_row["feature"] == "genome_size.mean"
+    mean_row = _row_by_annotation_status(result, "weighted_mean")
     assert mean_row["sample_a"] == pytest.approx(17.5)
     assert pd.isna(mean_row["sample_b"])
-    assert "no_majority" not in result["summary_type"].tolist()
+    assert "no_majority" not in result["annotation_status"].tolist()
 
 
 def test_create_community_summary_handles_factor_traits():
@@ -118,12 +120,10 @@ def test_create_community_summary_handles_factor_traits():
 
     result = create_community_summary(trait_summary, profile)
 
-    majority_row = _row_by_summary_type(result, "consensus_majority")
-    other_row = _row_by_summary_type(result, "consensus_other")
-    assert majority_row["feature"] == "cell_shape.rod"
-    assert majority_row["sample_a"] == pytest.approx(0.6)
-    assert other_row["feature"] == "cell_shape.other"
-    assert other_row["sample_a"] == pytest.approx(0.3)
+    rod_row = _row_by_annotation_status(result, "consensus", "rod")
+    coccus_row = _row_by_annotation_status(result, "consensus", "coccus")
+    assert rod_row["sample_a"] == pytest.approx(0.6)
+    assert coccus_row["sample_a"] == pytest.approx(0.3)
 
 
 def test_create_community_summary_returns_expected_columns_for_empty_summary():
@@ -133,4 +133,4 @@ def test_create_community_summary_returns_expected_columns_for_empty_summary():
     )
 
     assert result.empty
-    assert result.columns.tolist() == ["trait", "summary_type", "feature", "sample_a"]
+    assert result.columns.tolist() == ["trait", "annotation_status", "value", "sample_a"]
