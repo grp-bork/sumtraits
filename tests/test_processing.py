@@ -36,7 +36,12 @@ def test_write_output_files_contains_expected_files(tmp_path):
     normalized_profile = pd.DataFrame({"taxon_id": [1], "sample_a": [1.0]})
     trait_summary = pd.DataFrame({"taxon_id": [1], "trait_name": ["motility"]})
     community_summary = pd.DataFrame(
-        {"trait": ["motility"], "summary_type": ["consensus_true"], "sample_a": [1.0]}
+        {
+            "trait": ["motility"],
+            "annotation_status": ["consensus"],
+            "value": ["true"],
+            "sample_a": [1.0],
+        }
     )
 
     processing.write_output_files(
@@ -72,7 +77,12 @@ def test_write_output_files_copies_symlink_target_as_regular_file(tmp_path):
     normalized_profile = pd.DataFrame({"taxon_id": [1], "sample_a": [1.0]})
     trait_summary = pd.DataFrame({"taxon_id": [1], "trait_name": ["motility"]})
     community_summary = pd.DataFrame(
-        {"trait": ["motility"], "summary_type": ["consensus_true"], "sample_a": [1.0]}
+        {
+            "trait": ["motility"],
+            "annotation_status": ["consensus"],
+            "value": ["true"],
+            "sample_a": [1.0],
+        }
     )
 
     processing.write_output_files(

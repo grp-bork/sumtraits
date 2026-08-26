@@ -8,7 +8,7 @@ set -euo pipefail
 # test_results/ is never modified; only compressed copies are written
 # to RESULTS_REFERENCE_DIR, which is small enough to commit to git.
 
-RESULTS_DIR="test_results"
+RESULTS_DIR="test_results_v0.3.0"
 RESULTS_REFERENCE_DIR="tests/data/e2e_reference"
 FILES_TO_COPY=("taxon_trait_annotations.tsv" "community_trait_annotations.tsv")
 
