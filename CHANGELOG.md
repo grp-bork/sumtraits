@@ -1,3 +1,6 @@
+# v0.3.0
+- Change the community output format
+
 # v0.2.3
 - Performance improvements
 - remove retries on clowm
