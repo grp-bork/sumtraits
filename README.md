@@ -1,10 +1,82 @@
-# sumtraits
+# sumTraits: a metaTraits workflow
 
-`sumtraits` is a command-line tool for summarizing microbial trait annotations from taxonomic profiles.
+<table>
+  <tr width="100%">
+    <td width="150px">
+      <a href="https://www.bork.embl.de/"><img src="https://www.bork.embl.de/assets/img/normal_version.png" alt="Bork Group Logo" width="150px" height="auto"></a>
+    </td>
+    <td width="425px" align="center">
+      <b>Developed by the <a href="https://www.bork.embl.de/">Bork Group</a></b><br>
+      Raise an <a href="https://github.com/grp-bork/sumtraits/issues">issue</a> or <a href="mailto:N4M@embl.de">contact us</a><br><br>
+      See our <a href="https://www.bork.embl.de/services.html">other Software & Services</a>
+    </td>
+    <td width="500px">
+      Contributors:<br>
+      <ul>
+        <li>
+          <a href="https://github.com/mahdi-robbani/">Mahdi Robbani</a> <a href="https://orcid.org/0000-0003-0161-0559"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" alt="ORCID icon" width="20px" height="20px"></a><br>
+        </li>
+        <li>
+          <a href="https://github.com/danielpodlesny/">Daniel Podlesny</a> <a href="https://orcid.org/0000-0002-5685-0915"><img src="https://orcid.org/assets/vectors/orcid.logo.icon.svg" alt="ORCID icon" width="20px" height="20px"></a><br>
+        </li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="4" align="center">The development of this workflow was supported by <a href="https://www.nfdi4microbiota.de/">NFDI4Microbiota <img src="https://github.com/user-attachments/assets/1e78f65e-9828-46c0-834c-0ed12ca9d5ed" alt="NFDI4Microbiota icon" width="20px" height="20px"></a> 
+</td>
+  </tr>
+</table>
 
+---
+#### Description
+
+`sumTraits` is a tool for summarizing microbial trait annotations from taxonomic profiles.
 It translates an input profile to NCBI or GTDB taxon IDs, looks up matching metaTraits summaries, and writes output files containing the translated profile, taxon-level trait annotations, and community-level trait summaries.
 
-## Requirements
+It can be run as a Nextflow workflow, or directly as a Python command-line tool.
+
+---
+## Nextflow Workflow
+
+### Usage
+
+```bash
+nextflow run main.nf \
+    --taxonomic_profile <taxonomic_profile> \
+    --taxonomic_profile_type <profile_type> \
+    --taxonomy_type <ncbi|gtdb> \
+    --sumtraits_reference_data_dir <reference_data_directory> \
+    --output_dir <output_directory>
+```
+
+### Parameters
+
+| Parameter | Description | Required |
+|-----------|-------------|----------|
+| `--taxonomic_profile` | Path or S3 URI to the input taxonomic profile | ✅ |
+| `--taxonomic_profile_type` | Input profile format: `motus`, `metaphlan`, `kraken2`, `krakenuniq`, `bracken`, `kaiju`, `generic_ncbi`, or `generic_gtdb` | ✅ |
+| `--taxonomy_type` | Target taxonomy used for trait lookup: `ncbi` or `gtdb` | ✅ |
+| `--sumtraits_reference_data_dir` | Directory containing the SumTraits reference data files; preconfigured when running through Clowm | ✅ |
+| `--output_dir` | Path or S3 URI to the output directory | ✅ |
+| `--exclude_prediction_based` | Exclude prediction-based trait annotations and use culture-based records only | ❌ |
+| `--verbose` | Enable debug logging and runtime tracebacks | ❌ |
+
+### Output
+
+The workflow writes a set of output files directly to `--output_dir`.
+
+| File | Description |
+|------|-------------|
+| `profile.<taxonomy>.tsv` | Input profile translated and normalized to the target taxonomy |
+| `taxon_trait_annotations.tsv` | Taxon-level trait summaries for taxa found in the translated profile |
+| `community_trait_annotations.tsv` | Community-level trait summaries across the samples in the profile |
+| `<original_profile>` | Original input taxonomic profile |
+
+---
+## Python CLI
+
+### Requirements
 
 - Python 3.11 or newer
 - Local metaTraits reference data files
@@ -13,7 +85,7 @@ It translates an input profile to NCBI or GTDB taxon IDs, looks up matching meta
 The Python package depends on `numpy`, `pandas`, and `taxonomic-profile-translator`.
 Supported profile formats and target taxonomies are defined by `taxonomic-profile-translator`.
 
-## Installation
+### Installation
 
 From the repository root:
 
@@ -26,7 +98,7 @@ python -m pip install -e ".[test]"
 
 The editable install provides the `sumtraits` command.
 
-## Reference Data
+### Reference Data
 
 `sumtraits` expects combined metaTraits summary files in the directory passed to `--sumtraits-reference-data-dir`:
 
@@ -51,7 +123,7 @@ By default the script reads from `reference_data/`. To use another directory:
 BASE_DIR=/path/to/reference_data bash scripts/create_reference_files.sh
 ```
 
-## Taxonomy Tools
+### Taxonomy Tools
 
 If `taxonkit` or its required NCBI taxonomy database is not installed, run:
 
@@ -61,7 +133,7 @@ tpt install
 
 NOTE: this requires `taxonomic-profile-translator` to be installed.
 
-## Usage
+### Usage
 
 ```bash
 sumtraits \
@@ -83,41 +155,27 @@ sumtraits \
   --output-dir tmp
 ```
 
-Supported profile types:
+### Parameters
 
-- `generic_ncbi`
-- `generic_gtdb`
-- `motus`
-- `metaphlan`
-- `krakenuniq`
-- `kraken2`
-- `bracken`
-- `kaiju`
-
-Supported target taxonomies:
-
-- `ncbi`
-- `gtdb`
+| Parameter | Description | Required |
+|-----------|-------------|----------|
+| `--input-taxonomic-profile` | Path to the input taxonomic profile | ✅ |
+| `--taxonomic-profile-type` | Input profile format: `motus`, `metaphlan`, `kraken2`, `krakenuniq`, `bracken`, `kaiju`, `generic_ncbi`, or `generic_gtdb` | ✅ |
+| `--taxonomy-type` | Target taxonomy used for trait lookup: `ncbi` or `gtdb` | ✅ |
+| `--sumtraits-reference-data-dir` | Directory containing the combined metaTraits reference data files (see Reference Data above) | ✅ |
+| `--output-dir` | Path to the output directory | ✅ |
+| `--exclude-prediction-based` | Use the `*_no_predictions.tsv` reference summaries instead of the default `*_all.tsv` summaries | ❌ |
+| `--verbose` | Enable debug logging and show tracebacks for runtime errors | ❌ |
 
 The target taxonomy is the taxonomy used for trait lookup. The source taxonomy is inferred by `taxonomic-profile-translator` from `--taxonomic-profile-type`.
 
-Optional flags:
+### Output
 
-- `--exclude-prediction-based`: use the `*_no_predictions.tsv` reference summaries instead of the default `*_all.tsv` summaries.
-- `--verbose`: enable debug logging and show tracebacks for runtime errors.
-
-## Output
-
-For an input file named `profile.tsv` and `--taxonomy-type ncbi`, `sumtraits` writes the following files to `OUTPUT_DIR`:
-
-- `profile.ncbi.tsv`: translated and normalized taxonomic profile.
-- `taxon_trait_annotations.tsv`: taxon-level trait summary rows matching the translated taxon IDs.
-- `community_trait_annotations.tsv`: community-level trait summaries across the samples in the profile.
-- `profile.tsv`: the original input profile.
+Output files are the same as described in the [Nextflow Workflow Output](#output) section above.
 
 The community summary includes rows for consensus trait states, numeric trait means, no-robust-majority annotations, unannotated abundance, and unclassified abundance where applicable.
 
-## Development
+### Development
 
 Run the test suite with:
 
@@ -132,3 +190,19 @@ The main modules are:
 - `src/sumtraits/translate.py`: taxonomic profile translation.
 - `src/sumtraits/processing.py`: reference data lookup and archive writing.
 - `src/sumtraits/community.py`: community-level summary generation.
+
+---
+## Citation
+
+This workflow: TBD
+
+metaTraits:
+```
+Podlesny, Kim et al (2025) metaTraits: a large-scale integration of microbial phenotypic trait information, Nucleic Acids Research, 2025;, gkaf1241, https://doi.org/10.1093/nar/gkaf1241
+```
+
+Also cite:
+```
+Shen W, Ren H. TaxonKit: A Practical and Efficient NCBI Taxonomy Toolkit. PLoS Comput Biol. 2021;17(3):e1008647. doi:10.1371/journal.pcbi.1008647
+Standage D. PyTaxonKit: Python bindings for the TaxonKit library. https://github.com/bioforensics/pytaxonkit
+```
