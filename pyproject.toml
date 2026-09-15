@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sumtraits"
-version = "0.3.0"
+version = "0.4.0"
 description = "Command-line tools for summarizing traits from taxonomic profiles."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -21,6 +21,7 @@ test = [
 
 [project.scripts]
 sumtraits = "sumtraits.cli:main"
+sumtraits-index = "sumtraits.index_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
