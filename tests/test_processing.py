@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from sumtraits import processing
+from sumtraits import processing, reference_index
 
 
 def test_get_trait_summary_reads_synthetic_reference_data(tmp_path):
@@ -12,6 +12,7 @@ def test_get_trait_summary_reads_synthetic_reference_data(tmp_path):
             "trait_name": ["a", "b", "c"],
         }
     ).to_csv(reference_file, sep="\t", index=False)
+    reference_index.build_index(reference_file)
 
     result = processing.get_trait_summary({1, 3}, "NCBI", tmp_path, True)
 
