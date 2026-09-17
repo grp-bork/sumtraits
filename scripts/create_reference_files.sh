@@ -36,6 +36,5 @@ combine_tsvs "$BASE_DIR/ncbi_no_predictions.tsv" "$BASE_DIR"/ncbi*no_predictions
 combine_tsvs "$BASE_DIR/gtdb_all.tsv" "$BASE_DIR"/gtdb*all.tsv
 combine_tsvs "$BASE_DIR/gtdb_no_predictions.tsv" "$BASE_DIR"/gtdb*no_predictions.tsv
 
-# sumtraits reads these files through their sidecar indexes and refuses to run
-# without them, so build them alongside the reference files themselves.
+# sumtraits needs the sidecar indexes to run
 sumtraits-index --sumtraits-reference-data-dir "$BASE_DIR" --force
