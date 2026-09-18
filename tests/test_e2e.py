@@ -12,7 +12,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from sumtraits import cli
+from sumtraits import cli, reference_index
+from sumtraits.processing import _get_summary_path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TEST_DATA_DIR = Path(__file__).resolve().parent / "data" / "input"
@@ -57,6 +58,26 @@ def _combo_params(profile_types: dict[str, str]) -> list[tuple[str, str, str]]:
 def _combo_id(combo: tuple[str, str, str]) -> str:
     taxonomy_type, profile_type, _ = combo
     return f"{taxonomy_type}-{profile_type}"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def reference_data_is_indexed():
+    """Fail loudly if the reference data fixtures have not been indexed.
+
+    The indexes are part of the fixture, like the reference files themselves, so
+    the suite checks for them rather than building them: building them here would
+    write into reference_data/ as a side effect of running the tests, and would
+    hide a broken index build from the very tests meant to catch it.
+    """
+    if not FIXTURES_AVAILABLE:
+        return
+    for taxonomy_type in TAXONOMY_TYPES:
+        for exclude_prediction_based in (False, True):
+            reference_path = _get_summary_path(
+                REFERENCE_DATA_DIR, taxonomy_type, exclude_prediction_based
+            )
+            if reference_path.is_file():
+                reference_index.load_index(reference_path)
 
 
 def _run_sumtraits(
