@@ -1,6 +1,5 @@
 FROM python:3.11-alpine
 
-ENV TAXONKIT_DB="/ncbi_data/"
 ENV TPT_DB_PATH="/tpt_data/"
 
 # Bash is required for Nextflow task scripts; procps provides ps for tracing.

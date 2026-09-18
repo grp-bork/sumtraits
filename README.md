@@ -80,7 +80,7 @@ The workflow writes a set of output files directly to `--output_dir`.
 
 - Python 3.11 or newer
 - Local metaTraits reference data files
-- `taxonkit` and the NCBI taxonomy database, if they are not already installed on the system
+- The `taxonomic-profile-translator` database, extracted with `tpt install`
 
 The Python package depends on `numpy`, `pandas`, and `taxonomic-profile-translator`.
 Supported profile formats and target taxonomies are defined by `taxonomic-profile-translator`.
@@ -107,20 +107,26 @@ The editable install provides the `sumtraits` command.
 - `REFERENCE_DATA_DIR/gtdb_all.tsv`
 - `REFERENCE_DATA_DIR/gtdb_no_predictions.tsv`
 
+These combined files are built from the per-rank metaTraits summaries, which are kept
+separately in `reference_sources/`. Only `reference_data/` is needed to run the pipeline;
+`reference_sources/` is only needed to rebuild it.
+
 Download the source reference files from the metaTraits downloads page:
 
 https://metatraits.embl.de/documentation#downloads
 
-If the reference data are available as per-rank TSV files, rebuild the combined files with:
+Place the per-rank TSV files in `reference_sources/` and rebuild the combined files with:
 
 ```bash
 bash scripts/create_reference_files.sh
 ```
 
-By default the script reads from `reference_data/`. To use another directory:
+The script reads from `reference_sources/` and writes to `reference_data/`. To use other
+directories:
 
 ```bash
-BASE_DIR=/path/to/reference_data bash scripts/create_reference_files.sh
+SOURCE_DIR=/path/to/reference_sources OUTPUT_DIR=/path/to/reference_data \
+    bash scripts/create_reference_files.sh
 ```
 
 ### Reference Data Indexes
@@ -145,32 +151,29 @@ sumtraits-index --sumtraits-reference-data-dir reference_data
 reference file changed size since it was built. Rerun `sumtraits-index` to fix either.
 Indexes are portable, so they can be built once and shipped alongside the reference data.
 
-### Taxonomy Tools
+### Translator Database
 
-If `taxonkit` or its required NCBI taxonomy database is not installed, run:
+`taxonomic-profile-translator` ships its taxonomy lookup and mapping tables as one
+bundled SQLite database. Extract it once (about 440 MB, no network access needed) and
+check that it is in place:
 
 ```bash
 tpt install
+tpt verify
 ```
 
-NOTE: this requires `taxonomic-profile-translator` to be installed.
+NOTE: this requires `taxonomic-profile-translator` to be installed. `taxonkit` is no
+longer needed.
 
-`taxonkit` is only invoked for the `generic`, `kraken2`, `krakenuniq`, `bracken` and
-`kaiju` profile types. The `metaphlan` and `motus` types translate purely from the
-mapping tables and never call it.
-
-The translator reads its databases from locations set by environment variables. Point
-these at fast, ideally node-local storage when running many samples:
+The translator reads the database from a location set by an environment variable. Point
+it at fast, ideally node-local storage when running many samples:
 
 | Variable | Default | Contents |
 | --- | --- | --- |
-| `TPT_DB_PATH` | `~/.taxonomic_profile_translator/` | Mapping tables and the NCBI/GTDB taxdumps used during translation |
-| `TAXONKIT_DB` | `~/.taxonkit/` | Extraction target for `tpt install`; not read at runtime |
-| `TAXONKIT_PATH` | `/usr/local/bin/taxonkit` | The `taxonkit` executable |
+| `TPT_DB_PATH` | `~/.taxonomic_profile_translator/` | Directory holding `db/tpt.sqlite`, extracted by `tpt install` |
 
-Runtime lookups always pass an explicit data directory under `TPT_DB_PATH`, so
-`TAXONKIT_DB` only affects installation. `TPT_DB_PATH` is read when the translator is
-imported, so it must be set before the process starts.
+`TPT_DB_PATH` is read when the translator is imported, so it must be set before the
+process starts, both for `tpt install` and for `sumtraits`.
 
 ### Usage
 
