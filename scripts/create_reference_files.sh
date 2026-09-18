@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_DIR=${BASE_DIR:-reference_data}
+# Per-rank metaTraits summaries the combined files are built from.
+SOURCE_DIR=${SOURCE_DIR:-reference_sources}
+# Combined files sumtraits reads at runtime.
+OUTPUT_DIR=${OUTPUT_DIR:-reference_data}
 
 combine_tsvs() {
     local output=$1
@@ -21,7 +24,7 @@ combine_tsvs() {
     fi
 
     local tmp
-    tmp=$(mktemp "$BASE_DIR/.create_reference_files.XXXXXX")
+    tmp=$(mktemp "$OUTPUT_DIR/.create_reference_files.XXXXXX")
 
     head -n 1 "${files[0]}" > "$tmp"
     awk 'FNR > 1' "${files[@]}" >> "$tmp"
@@ -29,12 +32,19 @@ combine_tsvs() {
     mv "$tmp" "$output"
 }
 
+if [[ ! -d "$SOURCE_DIR" ]]; then
+    echo "Source directory not found: $SOURCE_DIR" >&2
+    exit 1
+fi
+
+mkdir -p "$OUTPUT_DIR"
+
 shopt -s nullglob
 
-combine_tsvs "$BASE_DIR/ncbi_all.tsv" "$BASE_DIR"/ncbi*all.tsv
-combine_tsvs "$BASE_DIR/ncbi_no_predictions.tsv" "$BASE_DIR"/ncbi*no_predictions.tsv
-combine_tsvs "$BASE_DIR/gtdb_all.tsv" "$BASE_DIR"/gtdb*all.tsv
-combine_tsvs "$BASE_DIR/gtdb_no_predictions.tsv" "$BASE_DIR"/gtdb*no_predictions.tsv
+combine_tsvs "$OUTPUT_DIR/ncbi_all.tsv" "$SOURCE_DIR"/ncbi*all.tsv
+combine_tsvs "$OUTPUT_DIR/ncbi_no_predictions.tsv" "$SOURCE_DIR"/ncbi*no_predictions.tsv
+combine_tsvs "$OUTPUT_DIR/gtdb_all.tsv" "$SOURCE_DIR"/gtdb*all.tsv
+combine_tsvs "$OUTPUT_DIR/gtdb_no_predictions.tsv" "$SOURCE_DIR"/gtdb*no_predictions.tsv
 
 # sumtraits needs the sidecar indexes to run
-sumtraits-index --sumtraits-reference-data-dir "$BASE_DIR" --force
+sumtraits-index --sumtraits-reference-data-dir "$OUTPUT_DIR" --force

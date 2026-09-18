@@ -1,3 +1,8 @@
+# v0.4.1
+- Upgrade `taxonomic-profile-translator` to v0.4.1, which replaces `taxonkit` with a bundled SQLite database
+- Drop the `TAXONKIT_DB` and `TAXONKIT_PATH` environment variables; only `TPT_DB_PATH` is read
+- Unclassified rows of generic profiles (`-1`, `unassigned`, `unclassified`) are now kept, so the `unclassified` rows of the community summary reflect them
+
 # v0.4.0
 - Look up reference data through a byte-offset index instead of scanning the whole file
 - Add `sumtraits-index` for building the reference data indexes
