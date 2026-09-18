@@ -123,6 +123,28 @@ By default the script reads from `reference_data/`. To use another directory:
 BASE_DIR=/path/to/reference_data bash scripts/create_reference_files.sh
 ```
 
+### Reference Data Indexes
+
+Each reference file needs a sidecar byte-offset index (`<file>.tsv.idx`) so that a run
+seeks directly to the rows it needs instead of scanning the whole file. This turns the
+lookup from a multi-second full scan into a few milliseconds, which matters when running
+many samples. `scripts/create_reference_files.sh` builds the indexes automatically; build
+them by hand with:
+
+```bash
+sumtraits-index --sumtraits-reference-data-dir reference_data
+```
+
+| Option | Description |
+| --- | --- |
+| `--sumtraits-reference-data-dir` | Directory containing the combined reference data files |
+| `--force` | Rebuild indexes even if they are already up to date |
+| `--verbose` | Enable debug logging |
+
+`sumtraits` fails with an error if an index is missing, or if it is stale because the
+reference file changed size since it was built. Rerun `sumtraits-index` to fix either.
+Indexes are portable, so they can be built once and shipped alongside the reference data.
+
 ### Taxonomy Tools
 
 If `taxonkit` or its required NCBI taxonomy database is not installed, run:
@@ -132,6 +154,23 @@ tpt install
 ```
 
 NOTE: this requires `taxonomic-profile-translator` to be installed.
+
+`taxonkit` is only invoked for the `generic`, `kraken2`, `krakenuniq`, `bracken` and
+`kaiju` profile types. The `metaphlan` and `motus` types translate purely from the
+mapping tables and never call it.
+
+The translator reads its databases from locations set by environment variables. Point
+these at fast, ideally node-local storage when running many samples:
+
+| Variable | Default | Contents |
+| --- | --- | --- |
+| `TPT_DB_PATH` | `~/.taxonomic_profile_translator/` | Mapping tables and the NCBI/GTDB taxdumps used during translation |
+| `TAXONKIT_DB` | `~/.taxonkit/` | Extraction target for `tpt install`; not read at runtime |
+| `TAXONKIT_PATH` | `/usr/local/bin/taxonkit` | The `taxonkit` executable |
+
+Runtime lookups always pass an explicit data directory under `TPT_DB_PATH`, so
+`TAXONKIT_DB` only affects installation. `TPT_DB_PATH` is read when the translator is
+imported, so it must be set before the process starts.
 
 ### Usage
 
